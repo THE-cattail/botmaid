@@ -21,8 +21,8 @@ type Bot struct {
 
 	Self *api.User
 
-	masters   []int64
-	testChats []int64
+	masters    []int64
+	testPlaces []int64
 }
 
 // IsMaster checks if a user is master of the bot.
@@ -37,7 +37,7 @@ func (b *Bot) IsMaster(u *api.User) bool {
 
 // IsTestPlace checks if a place is test place of the bot.
 func (b *Bot) IsTestPlace(c *api.Place) bool {
-	for _, v := range b.testChats {
+	for _, v := range b.testPlaces {
 		if c.ID == v {
 			return true
 		}
@@ -91,15 +91,15 @@ func (bm *BotMaid) Init(conf *toml.Tree) error {
 			}
 		}
 
-		if conf.Get(section+".TestChats") != nil {
-			if _, ok := conf.Get(section + ".TestChats").([]interface{}); !ok {
-				return fmt.Errorf("Init botmaid: Expected but not TestChats as a slice in " + section)
+		if conf.Get(section+".TestPlaces") != nil {
+			if _, ok := conf.Get(section + ".TestPlaces").([]interface{}); !ok {
+				return fmt.Errorf("Init botmaid: Expected but not TestPlaces as a slice in " + section)
 			}
-			for _, testChat := range conf.Get(section + ".TestChats").([]interface{}) {
-				if _, ok := testChat.(int64); !ok {
-					return fmt.Errorf("Init botmaid: Expected but not int64 in TestChats in " + section)
+			for _, testPlace := range conf.Get(section + ".TestPlaces").([]interface{}) {
+				if _, ok := testPlace.(int64); !ok {
+					return fmt.Errorf("Init botmaid: Expected but not int64 in TestPlaces in " + section)
 				}
-				b.testChats = append(b.testChats, testChat.(int64))
+				b.testPlaces = append(b.testPlaces, testPlace.(int64))
 			}
 		}
 

@@ -50,7 +50,6 @@ func help(e *api.Event, b *Bot) bool {
 			},
 			Place: e.Place,
 		})
-
 	} else {
 		b.API.Push(&api.Event{
 			Message: &api.Message{
