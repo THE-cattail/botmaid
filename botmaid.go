@@ -59,7 +59,7 @@ func (b *Bot) At(u *api.User) string {
 
 // BotMaid includes a slice of Bot and some methods to use them.
 type BotMaid struct {
-	bots []Bot
+	Bots []Bot
 }
 
 // Init reads information of bots from the toml and add them into the manager.
@@ -168,7 +168,7 @@ func (bm *BotMaid) Init(conf *toml.Tree) error {
 			return fmt.Errorf("Init botmaid: Unknown type of " + section)
 		}
 
-		bm.bots = append(bm.bots, *b)
+		bm.Bots = append(bm.Bots, *b)
 	}
 
 	return nil
@@ -210,7 +210,7 @@ func (bm *BotMaid) Run(conf *toml.Tree, cs []Command, ts []Timer) {
 		}
 	}()
 
-	for i := range bm.bots {
+	for i := range bm.Bots {
 		go func(b *Bot) {
 			events, errors := b.API.Pull(&api.PullConfig{
 				Limit:            100,
@@ -258,7 +258,7 @@ func (bm *BotMaid) Run(conf *toml.Tree, cs []Command, ts []Timer) {
 					}
 				}(&e)
 			}
-		}(&bm.bots[i])
+		}(&bm.Bots[i])
 	}
 
 	select {}
