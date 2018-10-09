@@ -184,7 +184,9 @@ func (bm *BotMaid) Run(conf *toml.Tree, cs []Command, ts []Timer) {
 
 			go func(v Timer) {
 				for {
-					if v.Frequency == "daily" {
+					if v.Frequency == "once" {
+						break
+					} else if v.Frequency == "daily" {
 						for time.Now().After(v.Time) {
 							v.Time = v.Time.AddDate(0, 0, 1)
 						}
