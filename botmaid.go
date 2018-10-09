@@ -175,7 +175,41 @@ func (bm *BotMaid) Init(conf *toml.Tree) error {
 }
 
 // Run begins to get updates and run commands.
-func (bm *BotMaid) Run(conf *toml.Tree, cs []Command) {
+func (bm *BotMaid) Run(conf *toml.Tree, cs []Command, ts []Timer) {
+	go func() {
+		for _, v := range ts {
+			if v.Frequency == "once" && time.Now().After(v.Time) {
+				continue
+			}
+
+			go func(v Timer) {
+				for {
+					if v.Frequency == "daily" {
+						for time.Now().After(v.Time) {
+							v.Time = v.Time.AddDate(0, 0, 1)
+						}
+					} else if v.Frequency == "weekly" {
+						for time.Now().After(v.Time) {
+							v.Time = v.Time.AddDate(0, 0, 7)
+						}
+					} else if v.Frequency == "monthly" {
+						for time.Now().After(v.Time) {
+							v.Time = v.Time.AddDate(0, 1, 0)
+						}
+					} else if v.Frequency == "yearly" {
+						for time.Now().After(v.Time) {
+							v.Time = v.Time.AddDate(1, 0, 0)
+						}
+					}
+
+					timer := time.NewTimer(-time.Since(v.Time))
+					<-timer.C
+					v.Do()
+				}
+			}(v)
+		}
+	}()
+
 	for i := range bm.bots {
 		go func(b *Bot) {
 			events, errors := b.API.Pull(&api.PullConfig{

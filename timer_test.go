@@ -1,0 +1,1 @@
+package botmaid_test

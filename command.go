@@ -32,10 +32,10 @@ func (cs CommandSlice) Less(i, j int) bool {
 	return cs[i].Priority > cs[j].Priority
 }
 
-// AddCommand adds a command into the CommandSlice.
-func AddCommand(cs *[]Command, c func(*api.Event, *Bot) bool, p int) {
+// AddCommand adds a command into the []Command.
+func AddCommand(cs *[]Command, f func(*api.Event, *Bot) bool, p int) {
 	*cs = append(*cs, Command{
-		Do:       c,
+		Do:       f,
 		Priority: p,
 	})
 }
