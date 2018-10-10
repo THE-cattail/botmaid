@@ -84,6 +84,11 @@ func (b *Bot) extractCommand(u *api.Event) string {
 // IsCommand checks if a message is a specific command.
 func (b *Bot) IsCommand(u *api.Event, c ...string) bool {
 	s := b.extractCommand(u)
+
+	if len(c) == 0 && s != "" {
+		return true
+	}
+
 	for _, v := range c {
 		if s == v {
 			return true

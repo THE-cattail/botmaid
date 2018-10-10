@@ -40,9 +40,9 @@ func help(e *api.Event, b *Bot) bool {
 	}
 
 	helpCommand := ""
-	if b.IsCommand(e, "help", "?") && len(args) > 1 {
+	if b.IsCommand(e, "help", "?") && len(args) == 2 {
 		helpCommand = args[1]
-	} else if b.IsCommand(e) && len(args) > 1 && slices.In(args[1], "--help", "-?") {
+	} else if b.IsCommand(e) && len(args) == 2 && slices.In(args[1], "-help", "-?") {
 		helpCommand = b.extractCommand(e)
 	} else {
 		return false
@@ -71,23 +71,17 @@ func help(e *api.Event, b *Bot) bool {
 }
 
 func help2(e *api.Event, b *Bot) bool {
-	for k, v := range h.HelpAlias {
-		if b.IsCommand(e, k) {
-			b.API.Push(&api.Event{
-				Message: &api.Message{
-					Text: h.HelpSubMenu[v],
-				},
-				Place: e.Place,
-			})
-			return true
-		}
-	}
+	if b.IsCommand(e) {
+		helpCommand := b.extractCommand(e)
 
-	for k, v := range h.HelpSubMenu {
-		if b.IsCommand(e, k) {
+		if _, ok := h.HelpAlias[helpCommand]; ok {
+			helpCommand = h.HelpAlias[helpCommand]
+		}
+
+		if s, ok := h.HelpSubMenu[helpCommand]; ok {
 			b.API.Push(&api.Event{
 				Message: &api.Message{
-					Text: v,
+					Text: s,
 				},
 				Place: e.Place,
 			})
