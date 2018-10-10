@@ -175,7 +175,7 @@ func (bm *BotMaid) Init(conf *toml.Tree) error {
 }
 
 // Run begins to get updates and run commands.
-func (bm *BotMaid) Run(conf *toml.Tree, cs []Command, ts []Timer) {
+func (bm *BotMaid) Run(conf *toml.Tree, cs []Command, ts []Timer, respTime time.Time) {
 	go func() {
 		for _, v := range ts {
 			if v.Frequency == "once" && time.Now().After(v.Time) {
@@ -230,6 +230,10 @@ func (bm *BotMaid) Run(conf *toml.Tree, cs []Command, ts []Timer) {
 
 			for e := range events {
 				go func(e *api.Event) {
+					if !time.Now().After(respTime) {
+						return
+					}
+
 					if conf.Get("Test.Test") != nil {
 						if _, ok := conf.Get("Test.Test").(bool); !ok {
 							log.Println("Bot running: Expected but not Test as a boolean in Test.")
