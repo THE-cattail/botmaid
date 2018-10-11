@@ -231,7 +231,7 @@ func (bm *BotMaid) Run(conf *toml.Tree, cs []Command, ts []Timer, respTime time.
 			for e := range events {
 				event := e
 				go func(e *api.Event) {
-					if !time.Now().After(respTime) {
+					if !e.Time.After(respTime) {
 						return
 					}
 
