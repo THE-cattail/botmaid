@@ -12,6 +12,10 @@ import (
 type Command struct {
 	Do       func(*api.Event, *Bot) bool
 	Priority int
+
+	Menu, Help        string
+	Name              []string
+	Sub, Master, Test bool
 }
 
 // CommandSlice is a slice of Command that could be sort.
@@ -33,11 +37,8 @@ func (cs CommandSlice) Less(i, j int) bool {
 }
 
 // AddCommand adds a command into the []Command.
-func AddCommand(cs *[]Command, f func(*api.Event, *Bot) bool, p int) {
-	*cs = append(*cs, Command{
-		Do:       f,
-		Priority: p,
-	})
+func (bm *BotMaid) AddCommand(c Command) {
+	bm.Commands = append(bm.Commands, c)
 }
 
 // SplitCommand splits a string into a slice of string.
@@ -60,8 +61,8 @@ func SplitCommand(c string) []string {
 	return a
 }
 
-func (b *Bot) extractCommand(u *api.Event) string {
-	args := SplitCommand(u.Message.Text)
+func (b *Bot) extractCommand(e *api.Event) string {
+	args := SplitCommand(e.Message.Text)
 	if len(args) == 0 {
 		return ""
 	}
@@ -82,8 +83,8 @@ func (b *Bot) extractCommand(u *api.Event) string {
 }
 
 // IsCommand checks if a message is a specific command.
-func (b *Bot) IsCommand(u *api.Event, c ...string) bool {
-	s := b.extractCommand(u)
+func (b *Bot) IsCommand(e *api.Event, c ...string) bool {
+	s := b.extractCommand(e)
 
 	if len(c) == 0 && s != "" {
 		return true
@@ -93,14 +94,6 @@ func (b *Bot) IsCommand(u *api.Event, c ...string) bool {
 		if s == v {
 			return true
 		}
-	}
-	return false
-}
-
-// CheckBeAt checks if someone send a message without commands and at the api.
-func (b *Bot) CheckBeAt(u *api.Event) bool {
-	if strings.Contains(u.Message.Text, b.At(b.Self)) && b.extractCommand(u) == "" {
-		return true
 	}
 	return false
 }

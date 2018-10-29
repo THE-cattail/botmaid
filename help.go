@@ -15,78 +15,91 @@ type Help struct {
 	HelpSubMenu, HelpAlias  map[string]string
 }
 
-var (
-	h *Help
-)
+func (bm *BotMaid) helpMenu() string {
+	s := ""
 
-// RegHelpCommand adds help as a high-priority command if a Help is defined and
-// going to be used.
-func RegHelpCommand(cs *[]Command, hs *Help) {
-	AddCommand(cs, help, 10000)
-	AddCommand(cs, help2, -10000)
-	h = hs
+	for k, v := range bm.HelpMenus {
+		s += k + " - " + v + "\n"
+	}
+
+	return s[:len(s)-1]
 }
 
-func help(e *api.Event, b *Bot) bool {
-	args := SplitCommand(e.Message.Text)
-	if b.IsCommand(e, "help", "?") && len(args) == 1 {
-		b.API.Push(&api.Event{
+func (bm *BotMaid) pushHelp(hc string, e *api.Event, b *Bot, showUndef bool) {
+	if _, ok := bm.HelpMenus[hc]; ok {
+		s := ""
+
+		for _, v := range bm.Commands {
+			if v.Menu == hc {
+				s += v.Name[0] + v.Help + "\n"
+			}
+		}
+
+		b.API.Push(api.Event{
 			Message: &api.Message{
-				Text: fmt.Sprintf(random.String(h.SelfIntro), e.Sender.NickName) + "\n\n" + h.HelpMenu,
+				Text: s[:len(s)-1],
+			},
+			Place: e.Place,
+		})
+		return
+	}
+	for _, c := range bm.Commands {
+		for _, n := range c.Name {
+			if n == hc {
+				b.API.Push(api.Event{
+					Message: &api.Message{
+						Text: n + c.Help,
+					},
+					Place: e.Place,
+				})
+				return
+			}
+		}
+	}
+
+	if !showUndef {
+		return
+	}
+
+	b.API.Push(api.Event{
+		Message: &api.Message{
+			Text: fmt.Sprintf(random.String(bm.Words["undefCommand"]), hc),
+		},
+		Place: e.Place,
+	})
+}
+
+func (bm *BotMaid) help(e *api.Event, b *Bot) bool {
+	args := SplitCommand(e.Message.Text)
+	if b.IsCommand(e, "help") && len(args) == 1 {
+		b.API.Push(api.Event{
+			Message: &api.Message{
+				Text: fmt.Sprintf(random.String(bm.Words["selfIntro"]), e.Sender.NickName) + "\n\n" + bm.helpMenu(),
 			},
 			Place: e.Place,
 		})
 		return true
 	}
 
-	helpCommand := ""
-	if b.IsCommand(e, "help", "?") && len(args) == 2 {
-		helpCommand = args[1]
-	} else if b.IsCommand(e) && len(args) == 2 && slices.In(args[1], "-help", "-?") {
-		helpCommand = b.extractCommand(e)
+	hc := ""
+	if b.IsCommand(e, "help") && len(args) == 2 {
+		hc = args[1]
+	} else if b.IsCommand(e) && len(args) == 2 && slices.In(args[1], "help") {
+		hc = b.extractCommand(e)
 	} else {
 		return false
 	}
 
-	if _, ok := h.HelpAlias[helpCommand]; ok {
-		helpCommand = h.HelpAlias[helpCommand]
-	}
-
-	if s, ok := h.HelpSubMenu[helpCommand]; ok {
-		b.API.Push(&api.Event{
-			Message: &api.Message{
-				Text: s,
-			},
-			Place: e.Place,
-		})
-	} else {
-		b.API.Push(&api.Event{
-			Message: &api.Message{
-				Text: fmt.Sprintf(random.String(h.UndefCommand), helpCommand),
-			},
-			Place: e.Place,
-		})
-	}
+	bm.pushHelp(hc, e, b, true)
 	return true
 }
 
-func help2(e *api.Event, b *Bot) bool {
+func (bm *BotMaid) help2(e *api.Event, b *Bot) bool {
 	if b.IsCommand(e) {
-		helpCommand := b.extractCommand(e)
+		hc := b.extractCommand(e)
 
-		if _, ok := h.HelpAlias[helpCommand]; ok {
-			helpCommand = h.HelpAlias[helpCommand]
-		}
-
-		if s, ok := h.HelpSubMenu[helpCommand]; ok {
-			b.API.Push(&api.Event{
-				Message: &api.Message{
-					Text: s,
-				},
-				Place: e.Place,
-			})
-			return true
-		}
+		bm.pushHelp(hc, e, b, false)
+		return true
 	}
 
 	return false
