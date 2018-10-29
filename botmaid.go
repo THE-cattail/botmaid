@@ -43,7 +43,8 @@ type dbTestPlace struct {
 
 // IsMaster checks if a user is master of the bot.
 func (b *Bot) IsMaster(u api.User) bool {
-	err := b.BotMaid.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND username = $2", b.ID, u.UserName)
+	m := dbMaster{}
+	err := b.BotMaid.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND username = $2", b.ID, u.UserName).Scan(&m.ID, &m.BotID, &m.UserName)
 	if err != nil {
 		return false
 	}
@@ -52,7 +53,8 @@ func (b *Bot) IsMaster(u api.User) bool {
 
 // IsTestPlace checks if a place is test place of the bot.
 func (b *Bot) IsTestPlace(p api.Place) bool {
-	err := b.BotMaid.DB.QueryRow("SELECT * FROM testplaces WHERE bot_id = $1 AND place_id = $2", b.ID, p.ID)
+	t := dbTestPlace{}
+	err := b.BotMaid.DB.QueryRow("SELECT * FROM testplaces WHERE bot_id = $1 AND place_id = $2", b.ID, p.ID).Scan(&t.ID, &t.BotID, &t.PlaceID)
 	if err != nil {
 		return false
 	}
