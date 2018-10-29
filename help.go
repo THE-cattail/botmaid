@@ -8,13 +8,6 @@ import (
 	"github.com/catsworld/slices"
 )
 
-// Help stores a full help menus that would be used in '/help' command.
-type Help struct {
-	HelpMenu                string
-	SelfIntro, UndefCommand []string
-	HelpSubMenu, HelpAlias  map[string]string
-}
-
 func (bm *BotMaid) helpMenu() string {
 	s := ""
 

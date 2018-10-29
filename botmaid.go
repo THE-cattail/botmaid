@@ -136,10 +136,6 @@ type BotMaid struct {
 }
 
 func (bm *BotMaid) addMaster(e *api.Event, b *Bot) bool {
-	if !b.IsMaster(*e.Sender) {
-		return false
-	}
-
 	args := SplitCommand(e.Message.Text)
 	if b.IsCommand(e, "addmaster") && len(args) == 2 {
 		if b.UserNameFromAt(args[1]) == "" {
@@ -153,8 +149,8 @@ func (bm *BotMaid) addMaster(e *api.Event, b *Bot) bool {
 		}
 
 		theMaster := dbMaster{}
-		err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND user_id = $2", b.ID, b.UserNameFromAt(args[1])).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserName)
-		if err != nil {
+		err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND username = $2", b.ID, b.UserNameFromAt(args[1])).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserName)
+		if err == nil {
 			b.API.Push(api.Event{
 				Message: &api.Message{
 					Text: fmt.Sprintf(random.String(bm.Words["masterExisted"]), args[1]),
@@ -180,10 +176,6 @@ func (bm *BotMaid) addMaster(e *api.Event, b *Bot) bool {
 }
 
 func (bm *BotMaid) removeMaster(e *api.Event, b *Bot) bool {
-	if !b.IsMaster(*e.Sender) {
-		return false
-	}
-
 	args := SplitCommand(e.Message.Text)
 	if b.IsCommand(e, "rmmaster") && len(args) == 2 {
 		if b.UserNameFromAt(args[1]) == "" {
@@ -198,7 +190,7 @@ func (bm *BotMaid) removeMaster(e *api.Event, b *Bot) bool {
 
 		theMaster := dbMaster{}
 		err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND username = $2", b.ID, b.UserNameFromAt(args[1])).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserName)
-		if err == nil {
+		if err != nil {
 			b.API.Push(api.Event{
 				Message: &api.Message{
 					Text: fmt.Sprintf(random.String(bm.Words["masterNotExisted"]), args[1]),
