@@ -8,12 +8,6 @@ import (
 	"github.com/catsworld/slices"
 )
 
-func (bm *BotMaid) helpMenu() string {
-	s := ""
-
-	return s[:len(s)-1]
-}
-
 func (bm *BotMaid) pushHelp(hc string, e *api.Event, b *Bot, showUndef bool) {
 	if _, ok := bm.HelpMenus[hc]; ok {
 		s := ""
@@ -43,6 +37,8 @@ func (bm *BotMaid) pushHelp(hc string, e *api.Event, b *Bot, showUndef bool) {
 		return
 	}
 
+	s := ""
+
 	for _, c := range bm.Commands {
 		if c.Master && !b.IsMaster(*e.Sender) {
 			continue
@@ -52,15 +48,24 @@ func (bm *BotMaid) pushHelp(hc string, e *api.Event, b *Bot, showUndef bool) {
 		}
 		for _, n := range c.Names {
 			if n == hc {
-				b.API.Push(api.Event{
-					Message: &api.Message{
-						Text: n + c.Help,
-					},
-					Place: e.Place,
-				})
-				return
+				s += n + c.Help
+				break
 			}
 		}
+	}
+	if s != "" {
+
+		if s[len(s)-1] == '\n' {
+			s = s[:len(s)-1]
+		}
+
+		b.API.Push(api.Event{
+			Message: &api.Message{
+				Text: s,
+			},
+			Place: e.Place,
+		})
+		return
 	}
 
 	if !showUndef {
