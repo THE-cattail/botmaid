@@ -4,10 +4,7 @@ package botmaid
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -122,8 +119,7 @@ func (b *Bot) UserNameFromAt(s string) string {
 type BotMaid struct {
 	Bots map[string]Bot
 
-	RootDir string
-	Conf    *toml.Tree
+	Conf *toml.Tree
 
 	DB *sql.DB
 
@@ -255,20 +251,6 @@ func (bm *BotMaid) switchTestPlace(e *api.Event, b *Bot) bool {
 // Init initializes the BotMaid.
 func (bm *BotMaid) Init() error {
 	var err error
-
-	bm.RootDir, err = filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		return fmt.Errorf("Read rootdir: %v", err)
-	}
-
-	raw, err := ioutil.ReadFile(bm.RootDir + "/config.toml")
-	if err != nil {
-		return fmt.Errorf("Read config: %v", err)
-	}
-	bm.Conf, err = toml.Load(string(raw))
-	if err != nil {
-		return fmt.Errorf("Read config: %v", err)
-	}
 
 	bm.HelpMenus["help"] = "查看命令帮助"
 	bm.HelpMenus["master"] = "设置 Master"
