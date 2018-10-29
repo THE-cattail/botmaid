@@ -11,10 +11,6 @@ import (
 func (bm *BotMaid) helpMenu() string {
 	s := ""
 
-	for k, v := range bm.HelpMenus {
-		s += k + " - " + v + "\n"
-	}
-
 	return s[:len(s)-1]
 }
 
@@ -82,9 +78,36 @@ func (bm *BotMaid) pushHelp(hc string, e *api.Event, b *Bot, showUndef bool) {
 func (bm *BotMaid) help(e *api.Event, b *Bot) bool {
 	args := SplitCommand(e.Message.Text)
 	if b.IsCommand(e, "help") && len(args) == 1 {
+		s := fmt.Sprintf(random.String(bm.Words["selfIntro"]), e.Sender.NickName) + "\n\n"
+
+		for k, v := range bm.HelpMenus {
+			f := false
+
+			for _, c := range bm.Commands {
+				if c.Master && !b.IsMaster(*e.Sender) {
+					continue
+				}
+				if c.Test && !b.IsTestPlace(*e.Place) {
+					continue
+				}
+				if c.Menu == k {
+					f = true
+					break
+				}
+			}
+
+			if f {
+				s += k + " - " + v + "\n"
+			}
+		}
+
+		if len(s) > 0 && s[len(s)-1] == '\n' {
+			s = s[:len(s)-1]
+		}
+
 		b.API.Push(api.Event{
 			Message: &api.Message{
-				Text: fmt.Sprintf(random.String(bm.Words["selfIntro"]), e.Sender.NickName) + "\n\n" + bm.helpMenu(),
+				Text: s,
 			},
 			Place: e.Place,
 		})
