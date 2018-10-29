@@ -297,7 +297,7 @@ func (bm *BotMaid) Init() error {
 	stmt, err := bm.DB.Prepare(`CREATE TABLE masters (
 		id SERIAL primary key,
 		bot_id text,
-		username bigint not null
+		username text
 	)`)
 	if err != nil {
 		return err
