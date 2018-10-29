@@ -13,9 +13,9 @@ type Command struct {
 	Do       func(*api.Event, *Bot) bool
 	Priority int
 
-	Menu, Help        string
-	Name              []string
-	Sub, Master, Test bool
+	Menu, Help   string
+	Names        []string
+	Master, Test bool
 }
 
 // CommandSlice is a slice of Command that could be sort.

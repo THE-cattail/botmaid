@@ -31,7 +31,7 @@ func (bm *BotMaid) pushHelp(hc string, e *api.Event, b *Bot, showUndef bool) {
 
 		for _, v := range bm.Commands {
 			if v.Menu == hc {
-				s += v.Name[0] + v.Help + "\n"
+				s += v.Names[0] + v.Help + "\n"
 			}
 		}
 
@@ -44,7 +44,7 @@ func (bm *BotMaid) pushHelp(hc string, e *api.Event, b *Bot, showUndef bool) {
 		return
 	}
 	for _, c := range bm.Commands {
-		for _, n := range c.Name {
+		for _, n := range c.Names {
 			if n == hc {
 				b.API.Push(api.Event{
 					Message: &api.Message{

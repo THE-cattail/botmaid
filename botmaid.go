@@ -128,9 +128,9 @@ type BotMaid struct {
 
 	HelpMenus map[string]string
 
-	RespTime time.Time
-
 	Words map[string][]string
+
+	RespTime time.Time
 }
 
 func (bm *BotMaid) addMaster(e *api.Event, b *Bot) bool {
@@ -260,7 +260,7 @@ func (bm *BotMaid) Init() error {
 		Do:       bm.help,
 		Priority: 10000,
 		Menu:     "help",
-		Name:     []string{"help"},
+		Names:    []string{"help"},
 		Help:     " <命令> - 查看命令帮助",
 	})
 	bm.AddCommand(Command{
@@ -271,7 +271,7 @@ func (bm *BotMaid) Init() error {
 		Do:       bm.addMaster,
 		Priority: 5,
 		Menu:     "master",
-		Name:     []string{"addmaster"},
+		Names:    []string{"addmaster"},
 		Help:     " <@某人> - 将某人设为 Master",
 		Master:   true,
 	})
@@ -279,7 +279,7 @@ func (bm *BotMaid) Init() error {
 		Do:       bm.removeMaster,
 		Priority: 5,
 		Menu:     "master",
-		Name:     []string{"rmmaster"},
+		Names:    []string{"rmmaster"},
 		Help:     " <@某人> - 取消某人的 Master 资格",
 		Master:   true,
 	})
@@ -287,17 +287,12 @@ func (bm *BotMaid) Init() error {
 		Do:       bm.switchTestPlace,
 		Priority: 5,
 		Menu:     "test",
-		Name:     []string{"test"},
+		Names:    []string{"test"},
 		Help:     " - 切换本场景的测试开关",
 		Master:   true,
 	})
 
 	sort.Stable(CommandSlice(bm.Commands))
-
-	bm.DB, err = sql.Open("postgres", "user="+bm.Conf.Get("Database.User").(string)+" password="+bm.Conf.Get("Database.Password").(string)+" dbname="+bm.Conf.Get("Database.DBName").(string)+" sslmode=disable")
-	if err != nil {
-		return fmt.Errorf("Connect database: %v", err)
-	}
 
 	stmt, err := bm.DB.Prepare(`CREATE TABLE masters (
 		id SERIAL primary key,
@@ -499,6 +494,12 @@ func (bm *BotMaid) Run() {
 					}
 
 					for _, c := range bm.Commands {
+						if !b.IsMaster(*e.Sender) && c.Master {
+							continue
+						}
+						if !b.IsTestPlace(*e.Place) && c.Test {
+							continue
+						}
 						if c.Do(&e, b) {
 							break
 						}
