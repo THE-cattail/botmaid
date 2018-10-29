@@ -170,6 +170,7 @@ func (bm *BotMaid) addMaster(e *api.Event, b *Bot) bool {
 			Message: &api.Message{
 				Text: fmt.Sprintf(random.String(bm.Words["masterAdded"]), args[1]),
 			},
+			Place: e.Place,
 		})
 
 		return true
@@ -213,6 +214,7 @@ func (bm *BotMaid) removeMaster(e *api.Event, b *Bot) bool {
 			Message: &api.Message{
 				Text: fmt.Sprintf(random.String(bm.Words["masterRemoved"]), args[1]),
 			},
+			Place: e.Place,
 		})
 
 		return true
@@ -233,6 +235,7 @@ func (bm *BotMaid) switchTestPlace(e *api.Event, b *Bot) bool {
 				Message: &api.Message{
 					Text: random.String(bm.Words["testPlaceAdded"]),
 				},
+				Place: e.Place,
 			})
 		} else {
 			stmt, _ := bm.DB.Prepare("DELETE FROM testplaces WHERE bot_id = $1 AND place_id = $2")
@@ -241,6 +244,7 @@ func (bm *BotMaid) switchTestPlace(e *api.Event, b *Bot) bool {
 				Message: &api.Message{
 					Text: random.String(bm.Words["testPlaceRemoved"]),
 				},
+				Place: e.Place,
 			})
 		}
 
