@@ -23,20 +23,37 @@ func (bm *BotMaid) pushHelp(hc string, e *api.Event, b *Bot, showUndef bool) {
 		s := ""
 
 		for _, v := range bm.Commands {
+			if v.Master && !b.IsMaster(*e.Sender) {
+				continue
+			}
+			if v.Test && !b.IsTestPlace(*e.Place) {
+				continue
+			}
 			if v.Menu == hc {
 				s += v.Names[0] + v.Help + "\n"
 			}
 		}
 
+		if len(s) > 0 && s[len(s)-1] == '\n' {
+			s = s[:len(s)-1]
+		}
+
 		b.API.Push(api.Event{
 			Message: &api.Message{
-				Text: s[:len(s)-1],
+				Text: s,
 			},
 			Place: e.Place,
 		})
 		return
 	}
+
 	for _, c := range bm.Commands {
+		if c.Master && !b.IsMaster(*e.Sender) {
+			continue
+		}
+		if c.Test && !b.IsTestPlace(*e.Place) {
+			continue
+		}
 		for _, n := range c.Names {
 			if n == hc {
 				b.API.Push(api.Event{
