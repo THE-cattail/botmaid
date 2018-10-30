@@ -67,8 +67,11 @@ func (b *Bot) extractCommand(e *api.Event) string {
 		return ""
 	}
 	s := args[0]
-	if len(args[0])-len(b.At(b.Self)) > 0 && strings.LastIndex(args[0], b.At(b.Self)) == len(args[0])-len(b.At(b.Self)) {
-		s = args[0][:len(args[0])-len(b.At(b.Self))]
+	for _, v := range b.At(b.Self) {
+		if len(args[0])-len(v) > 0 && strings.LastIndex(args[0], v) == len(args[0])-len(v) {
+			s = args[0][:len(args[0])-len(v)]
+			break
+		}
 	}
 	if strings.Index(s, "/") == 0 {
 		s = strings.Replace(s, "/", "", 1)
