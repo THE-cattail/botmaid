@@ -511,5 +511,5 @@ func (bm *BotMaid) Start() error {
 		}(section)
 	}
 
-	return nil
+	select {}
 }
