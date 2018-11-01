@@ -412,44 +412,6 @@ func (bm *BotMaid) Start() error {
 
 			bm.Bots[section] = &b
 
-			go func() {
-				for _, v := range bm.Timers {
-					if v.Frequency == "once" && time.Now().After(v.Time) {
-						continue
-					}
-
-					go func(v Timer) {
-						for {
-							if v.Frequency == "daily" {
-								for time.Now().After(v.Time) {
-									v.Time = v.Time.AddDate(0, 0, 1)
-								}
-							} else if v.Frequency == "weekly" {
-								for time.Now().After(v.Time) {
-									v.Time = v.Time.AddDate(0, 0, 7)
-								}
-							} else if v.Frequency == "monthly" {
-								for time.Now().After(v.Time) {
-									v.Time = v.Time.AddDate(0, 1, 0)
-								}
-							} else if v.Frequency == "yearly" {
-								for time.Now().After(v.Time) {
-									v.Time = v.Time.AddDate(1, 0, 0)
-								}
-							}
-
-							timer := time.NewTimer(-time.Since(v.Time))
-							<-timer.C
-							v.Do()
-
-							if v.Frequency == "once" {
-								break
-							}
-						}
-					}(v)
-				}
-			}()
-
 			events, errors := b.API.Pull(api.PullConfig{
 				Limit:            100,
 				Timeout:          60,
@@ -509,6 +471,42 @@ func (bm *BotMaid) Start() error {
 				}(e)
 			}
 		}(section)
+	}
+
+	for _, v := range bm.Timers {
+		if v.Frequency == "once" && time.Now().After(v.Time) {
+			continue
+		}
+
+		go func(v Timer) {
+			for {
+				if v.Frequency == "daily" {
+					for time.Now().After(v.Time) {
+						v.Time = v.Time.AddDate(0, 0, 1)
+					}
+				} else if v.Frequency == "weekly" {
+					for time.Now().After(v.Time) {
+						v.Time = v.Time.AddDate(0, 0, 7)
+					}
+				} else if v.Frequency == "monthly" {
+					for time.Now().After(v.Time) {
+						v.Time = v.Time.AddDate(0, 1, 0)
+					}
+				} else if v.Frequency == "yearly" {
+					for time.Now().After(v.Time) {
+						v.Time = v.Time.AddDate(1, 0, 0)
+					}
+				}
+
+				timer := time.NewTimer(-time.Since(v.Time))
+				<-timer.C
+				v.Do()
+
+				if v.Frequency == "once" {
+					break
+				}
+			}
+		}(v)
 	}
 
 	select {}
