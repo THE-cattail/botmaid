@@ -257,9 +257,6 @@ func (bm *BotMaid) Start() error {
 	bm.AddCommand(Command{
 		Do:       bm.help,
 		Priority: 10000,
-		Menu:     "help",
-		Names:    []string{"help"},
-		Help:     " <命令> - 查看命令帮助",
 	})
 	bm.AddCommand(Command{
 		Do:       bm.help2,
