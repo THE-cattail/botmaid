@@ -251,10 +251,6 @@ func (bm *BotMaid) switchTestPlace(e *api.Event, b *Bot) bool {
 func (bm *BotMaid) Start() error {
 	var err error
 
-	bm.HelpMenus["help"] = "查看命令帮助"
-	bm.HelpMenus["master"] = "设置 Master"
-	bm.HelpMenus["test"] = "设置测试场景"
-
 	bm.AddCommand(Command{
 		Do:       bm.help,
 		Priority: 10000,
@@ -266,7 +262,6 @@ func (bm *BotMaid) Start() error {
 	bm.AddCommand(Command{
 		Do:       bm.addMaster,
 		Priority: 5,
-		Menu:     "master",
 		Names:    []string{"addmaster"},
 		Help:     " <@某人> - 将某人设为 Master",
 		Master:   true,
@@ -274,7 +269,6 @@ func (bm *BotMaid) Start() error {
 	bm.AddCommand(Command{
 		Do:       bm.removeMaster,
 		Priority: 5,
-		Menu:     "master",
 		Names:    []string{"rmmaster"},
 		Help:     " <@某人> - 取消某人的 Master 资格",
 		Master:   true,
@@ -282,7 +276,6 @@ func (bm *BotMaid) Start() error {
 	bm.AddCommand(Command{
 		Do:       bm.switchTestPlace,
 		Priority: 5,
-		Menu:     "test",
 		Names:    []string{"test"},
 		Help:     " - 切换本场景的测试开关",
 		Master:   true,
