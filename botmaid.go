@@ -220,7 +220,7 @@ func (bm *BotMaid) switchTestPlace(e *api.Event, b *Bot) bool {
 	args := SplitCommand(e.Message.Text)
 	if b.IsCommand(e, "test") && len(args) == 1 {
 		theTestPlace := dbTestPlace{}
-		err := bm.DB.QueryRow("SELECT * FROM testplaces WHERE bot_id = $1 AND place_type = $2 AND place_id = $3", b.ID, e.Place.ID).Scan(&theTestPlace.ID, &theTestPlace.BotID, &theTestPlace.PlaceType, &theTestPlace.PlaceID)
+		err := bm.DB.QueryRow("SELECT * FROM testplaces WHERE bot_id = $1 AND place_type = $2 AND place_id = $3", b.ID, e.Place.Type, e.Place.ID).Scan(&theTestPlace.ID, &theTestPlace.BotID, &theTestPlace.PlaceType, &theTestPlace.PlaceID)
 		if err != nil {
 			stmt, _ := bm.DB.Prepare("INSERT INTO testplaces(bot_id, place_type, place_id) VALUES($1, $2, $3)")
 			stmt.Exec(b.ID, e.Place.Type, e.Place.ID)
