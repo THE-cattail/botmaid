@@ -61,6 +61,19 @@ func SplitCommand(c string) []string {
 	return a
 }
 
+// GetArgument returns a slice with a command and an argument.
+func GetArgument(c string) []string {
+	args := SplitCommand(c)
+
+	t := strings.Index(c, args[0]) + len(args[0]) + 1
+
+	ret := ""
+	if t < len(c) {
+		ret = c[t:]
+	}
+	return []string{args[0], ret}
+}
+
 func (b *Bot) extractCommand(e *api.Event) string {
 	args := SplitCommand(e.Message.Text)
 	if len(args) == 0 {

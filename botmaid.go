@@ -36,9 +36,10 @@ type dbMaster struct {
 }
 
 type dbTestPlace struct {
-	ID      int64
-	BotID   string
-	PlaceID int64
+	ID        int64
+	BotID     string
+	PlaceType string
+	PlaceID   int64
 }
 
 // IsMaster checks if a user is master of the bot.
@@ -54,7 +55,7 @@ func (b *Bot) IsMaster(u api.User) bool {
 // IsTestPlace checks if a place is test place of the bot.
 func (b *Bot) IsTestPlace(p api.Place) bool {
 	t := dbTestPlace{}
-	err := b.BotMaid.DB.QueryRow("SELECT * FROM testplaces WHERE bot_id = $1 AND place_id = $2", b.ID, p.ID).Scan(&t.ID, &t.BotID, &t.PlaceID)
+	err := b.BotMaid.DB.QueryRow("SELECT * FROM testplaces WHERE bot_id = $1 AND place_type = $2 AND place_id = $3", b.ID, p.Type, p.ID).Scan(&t.ID, &t.BotID, &t.PlaceType, &t.PlaceID)
 	if err != nil {
 		return false
 	}
@@ -219,10 +220,10 @@ func (bm *BotMaid) switchTestPlace(e *api.Event, b *Bot) bool {
 	args := SplitCommand(e.Message.Text)
 	if b.IsCommand(e, "test") && len(args) == 1 {
 		theTestPlace := dbTestPlace{}
-		err := bm.DB.QueryRow("SELECT * FROM testplaces WHERE bot_id = $1 AND place_id = $2", b.ID, e.Place.ID).Scan(&theTestPlace.ID, &theTestPlace.BotID, &theTestPlace.PlaceID)
+		err := bm.DB.QueryRow("SELECT * FROM testplaces WHERE bot_id = $1 AND place_type = $2 AND place_id = $3", b.ID, e.Place.ID).Scan(&theTestPlace.ID, &theTestPlace.BotID, &theTestPlace.PlaceType, &theTestPlace.PlaceID)
 		if err != nil {
-			stmt, _ := bm.DB.Prepare("INSERT INTO testplaces(bot_id, place_id) VALUES($1, $2)")
-			stmt.Exec(b.ID, e.Place.ID)
+			stmt, _ := bm.DB.Prepare("INSERT INTO testplaces(bot_id, place_type, place_id) VALUES($1, $2, $3)")
+			stmt.Exec(b.ID, e.Place.Type, e.Place.ID)
 			b.API.Push(api.Event{
 				Message: &api.Message{
 					Text: random.String(bm.Words["testPlaceAdded"]),
@@ -230,8 +231,8 @@ func (bm *BotMaid) switchTestPlace(e *api.Event, b *Bot) bool {
 				Place: e.Place,
 			})
 		} else {
-			stmt, _ := bm.DB.Prepare("DELETE FROM testplaces WHERE bot_id = $1 AND place_id = $2")
-			stmt.Exec(b.ID, e.Place.ID)
+			stmt, _ := bm.DB.Prepare("DELETE FROM testplaces WHERE bot_id = $1 AND place_type = $2 AND place_id = $3")
+			stmt.Exec(b.ID, e.Place.Type, e.Place.ID)
 			b.API.Push(api.Event{
 				Message: &api.Message{
 					Text: random.String(bm.Words["testPlaceRemoved"]),
@@ -303,6 +304,7 @@ func (bm *BotMaid) Start() error {
 	stmt, err = bm.DB.Prepare(`CREATE TABLE testplaces (
 		id SERIAL primary key,
 		bot_id text,
+		place_type text,
 		place_id bigint not null
 	)`)
 	if err != nil {
