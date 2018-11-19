@@ -66,3 +66,16 @@ func (bm *BotMaid) Broadcast(tableName string, m *api.Message) {
 		})
 	}
 }
+
+// SwitchBroadcast switches the broadcast on/off of a place.
+func (bm *BotMaid) SwitchBroadcast(tableName string, b *Bot, place *api.Place) {
+	thePlace := DBBroadcastPlace{}
+	err := bm.DB.QueryRow("SELECT * FROM "+tableName+" WHERE bot_id = $1 AND place_type = $2 AND place_id = $3", b.ID, place.Type, place.ID).Scan(&thePlace.ID, &thePlace.BotID, &thePlace.PlaceType, &thePlace.PlaceID)
+	if err != nil {
+		stmt, _ := bm.DB.Prepare("INSERT INTO " + tableName + "(bot_id, place_type, place_id) VALUES($1, $2, $3)")
+		stmt.Exec(b.ID, place.Type, place.ID)
+	} else {
+		stmt, _ := bm.DB.Prepare("DELETE FROM " + tableName + " WHERE bot_id = $1 AND place_type = $2 AND place_id = $3")
+		stmt.Exec(b.ID, place.Type, place.ID)
+	}
+}
