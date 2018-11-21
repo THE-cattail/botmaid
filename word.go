@@ -8,9 +8,11 @@ type Word struct {
 	Weight int64
 }
 
-// RandomWordWithWeight returns a random string from the Word slice according
-// to the weight.
-func RandomWordWithWeight(ws []Word) string {
+// WordSlice is a slice of Word.
+type WordSlice []Word
+
+// Random returns a random string from the Word slice.
+func (ws WordSlice) Random() string {
 	sum := int64(0)
 	for _, v := range ws {
 		if v.Weight > 0 {

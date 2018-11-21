@@ -13,10 +13,6 @@ type Timer struct {
 }
 
 // AddTimer adds a timer into the []Timer.
-func (bm *BotMaid) AddTimer(f func(), t time.Time, fre string) {
-	bm.Timers = append(bm.Timers, Timer{
-		Do:        f,
-		Time:      t,
-		Frequency: fre,
-	})
+func (bm *BotMaid) AddTimer(t Timer) {
+	bm.Timers = append(bm.Timers, t)
 }

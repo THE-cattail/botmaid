@@ -81,32 +81,18 @@ func (bm *BotMaid) pushHelp(hc string, e *api.Event, b *Bot, showUndef bool) {
 	})
 }
 
-type stringSlice []string
-
-func (ss stringSlice) Len() int {
-	return len(ss)
-}
-
-func (ss stringSlice) Swap(i, j int) {
-	ss[i], ss[j] = ss[j], ss[i]
-}
-
-func (ss stringSlice) Less(i, j int) bool {
-	return ss[i] < ss[j]
-}
-
 func (bm *BotMaid) help(e *api.Event, b *Bot) bool {
 	args := SplitCommand(e.Message.Text)
 	if b.IsCommand(e, "help") && len(args) == 1 {
 		s := fmt.Sprintf(random.String(bm.Words["selfIntro"]), e.Sender.NickName) + "\n\n"
 
-		menus := stringSlice{}
+		menus := []string{}
 
 		for k := range bm.HelpMenus {
 			menus = append(menus, k)
 		}
 
-		sort.Stable(menus)
+		sort.Strings(menus)
 
 		for _, k := range menus {
 			f := false

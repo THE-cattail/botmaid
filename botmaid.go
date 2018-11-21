@@ -7,7 +7,6 @@ import (
 	"log"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/catsworld/api"
@@ -17,106 +16,6 @@ import (
 
 	"github.com/pelletier/go-toml"
 )
-
-// Bot includes some information of a bot.
-type Bot struct {
-	ID string
-
-	API api.API
-
-	Self *api.User
-
-	BotMaid *BotMaid
-}
-
-type dbMaster struct {
-	ID       int64
-	BotID    string
-	UserName string
-}
-
-type dbTestPlace struct {
-	ID        int64
-	BotID     string
-	PlaceType string
-	PlaceID   int64
-}
-
-// IsMaster checks if a user is master of the bot.
-func (b *Bot) IsMaster(u api.User) bool {
-	m := dbMaster{}
-	err := b.BotMaid.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND username = $2", b.ID, u.UserName).Scan(&m.ID, &m.BotID, &m.UserName)
-	if err != nil {
-		return false
-	}
-	return true
-}
-
-// IsTestPlace checks if a place is test place of the bot.
-func (b *Bot) IsTestPlace(p api.Place) bool {
-	t := dbTestPlace{}
-	err := b.BotMaid.DB.QueryRow("SELECT * FROM testplaces WHERE bot_id = $1 AND place_type = $2 AND place_id = $3", b.ID, p.Type, p.ID).Scan(&t.ID, &t.BotID, &t.PlaceType, &t.PlaceID)
-	if err != nil {
-		return false
-	}
-	return true
-}
-
-// Platform returns a string showing the platform of the bot.
-func (b *Bot) Platform() string {
-	switch b.API.(type) {
-	case *cqhttp.API:
-		return "QQ"
-	case *tgbot.API:
-		return "Telegram"
-	}
-
-	return "Unknown Platform"
-}
-
-// At returns a string to mention someone in a message.
-func (b *Bot) At(u *api.User) []string {
-	switch b.API.(type) {
-	case *cqhttp.API:
-		return []string{fmt.Sprintf("[CQ:at,qq=%s]", u.UserName), fmt.Sprintf("@%s", u.NickName)}
-	case *tgbot.API:
-		return []string{fmt.Sprintf("@%s", u.UserName)}
-	}
-
-	return []string{fmt.Sprintf("@%s", u.UserName)}
-}
-
-// BeAt checks if a message of an event is mentioning the bot.
-func (b *Bot) BeAt(e *api.Event) bool {
-	switch b.API.(type) {
-	case *cqhttp.API:
-		if (strings.Contains(e.Message.Text, fmt.Sprintf("[CQ:at,qq=%s]", b.Self.UserName)) || strings.Contains(e.Message.Text, fmt.Sprintf("@%s", b.Self.NickName))) && b.extractCommand(e) == "" {
-			return true
-		}
-	case *tgbot.API:
-		if strings.Contains(e.Message.Text, fmt.Sprintf("@%s", b.Self.UserName)) && b.extractCommand(e) == "" {
-			return true
-		}
-	}
-
-	return false
-}
-
-// UserNameFromAt returns the UserName of the user in the mention query.
-func (b *Bot) UserNameFromAt(s string) string {
-	switch b.API.(type) {
-	case *cqhttp.API:
-		if fmt.Sprintf("[CQ:at,qq=%s]", s[10:len(s)-1]) == s {
-			return s[10 : len(s)-1]
-		}
-	case *tgbot.API:
-		if fmt.Sprintf("@%s", s[1:]) == s {
-			return s[1:]
-		}
-	}
-
-	return ""
-}
 
 // BotMaid includes a slice of Bot and some methods to use them.
 type BotMaid struct {
@@ -247,10 +146,7 @@ func (bm *BotMaid) switchTestPlace(e *api.Event, b *Bot) bool {
 	return false
 }
 
-// Start starts the BotMaid.
-func (bm *BotMaid) Start() error {
-	var err error
-
+func (bm *BotMaid) initCommand() {
 	bm.AddCommand(Command{
 		Do:       bm.help,
 		Priority: 10000,
@@ -282,14 +178,16 @@ func (bm *BotMaid) Start() error {
 	})
 
 	sort.Stable(CommandSlice(bm.Commands))
+}
 
+func (bm *BotMaid) initDatabase() error {
 	stmt, err := bm.DB.Prepare(`CREATE TABLE masters (
 		id SERIAL primary key,
 		bot_id text,
 		username text
 	)`)
 	if err != nil {
-		return err
+		return fmt.Errorf("Init botmaid database: %v", err)
 	}
 
 	stmt.Exec()
@@ -301,11 +199,171 @@ func (bm *BotMaid) Start() error {
 		place_id bigint not null
 	)`)
 	if err != nil {
-		return err
+		return fmt.Errorf("Init botmaid database: %v", err)
 	}
 
 	stmt.Exec()
 
+	return nil
+}
+
+func (bm *BotMaid) readBotConfig(section string) (Bot, error) {
+	botType := bm.Conf.Get(section + ".Type").(string)
+
+	b := Bot{
+		ID:      section,
+		BotMaid: bm,
+	}
+
+	if botType == "QQ" {
+		q := &cqhttp.API{}
+
+		if bm.Conf.Get(section+".AccessToken") != nil {
+			if _, ok := bm.Conf.Get(section + ".AccessToken").(string); ok {
+				q.AccessToken = bm.Conf.Get(section + ".AccessToken").(string)
+			}
+		}
+
+		if bm.Conf.Get(section+".Secret") != nil {
+			if _, ok := bm.Conf.Get(section + ".Secret").(string); ok {
+				q.Secret = bm.Conf.Get(section + ".Secret").(string)
+			}
+		}
+
+		if bm.Conf.Get(section+".APIEndpoint") != nil {
+			if _, ok := bm.Conf.Get(section + ".APIEndpoint").(string); ok {
+				q.APIEndpoint = bm.Conf.Get(section + ".APIEndpoint").(string)
+			}
+		}
+
+		for {
+			m, err := q.API("get_login_info", map[string]interface{}{})
+			if err != nil {
+				log.Printf("Init botmaid: %v, retrying...\n", err)
+				time.Sleep(time.Second * 3)
+				continue
+			}
+
+			u := m.(map[string]interface{})
+			b.Self = &api.User{
+				ID:       int64(u["user_id"].(float64)),
+				UserName: strconv.FormatInt(int64(u["user_id"].(float64)), 10),
+				NickName: u["nickname"].(string),
+			}
+
+			break
+		}
+
+		b.API = q
+	} else if botType == "Telegram" {
+		t := &tgbot.API{}
+
+		if bm.Conf.Get(section+".Token") != nil {
+			if _, ok := bm.Conf.Get(section + ".Token").(string); ok {
+				t.Token = bm.Conf.Get(section + ".Token").(string)
+			}
+		}
+
+		for {
+			m, err := t.API("getMe", map[string]interface{}{})
+			if err != nil {
+				log.Printf("Init botmaid: %v, retrying...\n", err)
+				time.Sleep(time.Second * 3)
+				continue
+			}
+
+			u := m.(map[string]interface{})
+			b.Self = &api.User{
+				ID:       int64(u["id"].(float64)),
+				NickName: u["first_name"].(string),
+			}
+			if u["last_name"] != nil {
+				b.Self.NickName += " " + u["last_name"].(string)
+			}
+			if u["username"] != nil {
+				b.Self.UserName = u["username"].(string)
+			}
+
+			break
+		}
+		b.API = t
+	} else {
+		return Bot{}, fmt.Errorf("Init botmaid: Unknown type of %v", section)
+	}
+
+	return b, nil
+}
+
+func (bm *BotMaid) startBot(section string) {
+	b, err := bm.readBotConfig(section)
+	if err != nil {
+		log.Fatalf("[Fatal] Start bot: %v\n", err)
+		return
+	}
+
+	bm.Bots[section] = &b
+
+	events, errors := b.API.Pull(api.PullConfig{
+		Limit:            100,
+		Timeout:          60,
+		RetryWaitingTime: time.Second * 3,
+	})
+
+	go func() {
+		for err := range errors {
+			log.Printf("Bot running: %v.\n", err)
+		}
+	}()
+
+	log.Printf("%s (%s) has been loaded. Begin to pull events.\n", b.Self.NickName, b.Platform())
+
+	for e := range events {
+		go func(e api.Event) {
+			if !e.Time.After(bm.RespTime) {
+				return
+			}
+
+			if bm.Conf.Get("Test.Test") != nil {
+				if _, ok := bm.Conf.Get("Test.Test").(bool); !ok {
+					log.Println("Bot running: Expected but not Test as a boolean in Test.")
+					return
+				}
+			}
+
+			if e.Message == nil {
+				return
+			}
+
+			if !bm.Conf.Get("Test.Test").(bool) || (b.IsTestPlace(*e.Place) && b.BeAt(&e)) {
+				logText := e.Message.Text
+
+				if e.Sender != nil {
+					logText = e.Sender.NickName + "(@" + e.Sender.UserName + "):" + logText
+				}
+
+				if e.Place != nil && e.Place.Title != "" {
+					logText = "[" + e.Place.Title + "]" + logText
+				}
+
+				log.Println(logText)
+
+				for _, c := range bm.Commands {
+					if !b.IsMaster(*e.Sender) && c.Master {
+						continue
+					}
+					if !b.IsTestPlace(*e.Place) && c.Test {
+						continue
+					}
+					if c.Do(&e, bm.Bots[section]) {
+						break
+					}
+				}
+			}
+		}(e)
+	}
+}
+
+func (bm *BotMaid) loadBots() error {
 	for i := 1; ; i++ {
 		section := "Bot_" + strconv.Itoa(i)
 
@@ -317,154 +375,13 @@ func (bm *BotMaid) Start() error {
 			return fmt.Errorf("Init botmaid: Missing type of %v", section)
 		}
 
-		go func(section string) {
-			botType := bm.Conf.Get(section + ".Type").(string)
-
-			b := Bot{
-				ID:      section,
-				BotMaid: bm,
-			}
-
-			if botType == "QQ" {
-				q := &cqhttp.API{}
-
-				if bm.Conf.Get(section+".AccessToken") != nil {
-					if _, ok := bm.Conf.Get(section + ".AccessToken").(string); ok {
-						q.AccessToken = bm.Conf.Get(section + ".AccessToken").(string)
-					}
-				}
-
-				if bm.Conf.Get(section+".Secret") != nil {
-					if _, ok := bm.Conf.Get(section + ".Secret").(string); ok {
-						q.Secret = bm.Conf.Get(section + ".Secret").(string)
-					}
-				}
-
-				if bm.Conf.Get(section+".APIEndpoint") != nil {
-					if _, ok := bm.Conf.Get(section + ".APIEndpoint").(string); ok {
-						q.APIEndpoint = bm.Conf.Get(section + ".APIEndpoint").(string)
-					}
-				}
-
-				for {
-					m, err := q.API("get_login_info", map[string]interface{}{})
-					if err != nil {
-						log.Printf("Init botmaid: %v, retrying...\n", err)
-						time.Sleep(time.Second * 3)
-						continue
-					}
-
-					u := m.(map[string]interface{})
-					b.Self = &api.User{
-						ID:       int64(u["user_id"].(float64)),
-						UserName: strconv.FormatInt(int64(u["user_id"].(float64)), 10),
-						NickName: u["nickname"].(string),
-					}
-
-					break
-				}
-
-				b.API = q
-			} else if botType == "Telegram" {
-				t := &tgbot.API{}
-
-				if bm.Conf.Get(section+".Token") != nil {
-					if _, ok := bm.Conf.Get(section + ".Token").(string); ok {
-						t.Token = bm.Conf.Get(section + ".Token").(string)
-					}
-				}
-
-				for {
-					m, err := t.API("getMe", map[string]interface{}{})
-					if err != nil {
-						log.Printf("Init botmaid: %v, retrying...\n", err)
-						time.Sleep(time.Second * 3)
-						continue
-					}
-
-					u := m.(map[string]interface{})
-					b.Self = &api.User{
-						ID:       int64(u["id"].(float64)),
-						NickName: u["first_name"].(string),
-					}
-					if u["last_name"] != nil {
-						b.Self.NickName += " " + u["last_name"].(string)
-					}
-					if u["username"] != nil {
-						b.Self.UserName = u["username"].(string)
-					}
-
-					break
-				}
-				b.API = t
-			} else {
-				log.Printf("Init botmaid: Unknown type of %s\n", section)
-				return
-			}
-
-			bm.Bots[section] = &b
-
-			events, errors := b.API.Pull(api.PullConfig{
-				Limit:            100,
-				Timeout:          60,
-				RetryWaitingTime: time.Second * 3,
-			})
-
-			go func() {
-				for err := range errors {
-					log.Printf("Bot running: %v.\n", err)
-				}
-			}()
-
-			log.Printf("%s (%s) has been loaded. Begin to pull events.\n", b.Self.NickName, b.Platform())
-
-			for e := range events {
-				go func(e api.Event) {
-					if !e.Time.After(bm.RespTime) {
-						return
-					}
-
-					if bm.Conf.Get("Test.Test") != nil {
-						if _, ok := bm.Conf.Get("Test.Test").(bool); !ok {
-							log.Println("Bot running: Expected but not Test as a boolean in Test.")
-							return
-						}
-					}
-
-					if e.Message == nil {
-						return
-					}
-
-					if !bm.Conf.Get("Test.Test").(bool) || (b.IsTestPlace(*e.Place) && b.BeAt(&e)) {
-						logText := e.Message.Text
-
-						if e.Sender != nil {
-							logText = e.Sender.NickName + "(@" + e.Sender.UserName + "):" + logText
-						}
-
-						if e.Place != nil && e.Place.Title != "" {
-							logText = "[" + e.Place.Title + "]" + logText
-						}
-
-						log.Println(logText)
-
-						for _, c := range bm.Commands {
-							if !b.IsMaster(*e.Sender) && c.Master {
-								continue
-							}
-							if !b.IsTestPlace(*e.Place) && c.Test {
-								continue
-							}
-							if c.Do(&e, bm.Bots[section]) {
-								break
-							}
-						}
-					}
-				}(e)
-			}
-		}(section)
+		go bm.startBot(section)
 	}
 
+	return nil
+}
+
+func (bm *BotMaid) loadTimers() {
 	for _, v := range bm.Timers {
 		if v.Frequency == "once" && time.Now().After(v.Time) {
 			continue
@@ -500,6 +417,23 @@ func (bm *BotMaid) Start() error {
 			}
 		}(v)
 	}
+}
+
+// Start starts the BotMaid.
+func (bm *BotMaid) Start() error {
+	bm.initCommand()
+
+	err := bm.initDatabase()
+	if err != nil {
+		return fmt.Errorf("Init botmaid: %v", err)
+	}
+
+	err = bm.loadBots()
+	if err != nil {
+		return fmt.Errorf("Init botmaid: %v", err)
+	}
+
+	bm.loadTimers()
 
 	select {}
 }
