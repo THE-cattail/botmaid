@@ -49,11 +49,12 @@ func (bm *BotMaid) pushHelp(hc string, e *api.Event, b *Bot, showUndef bool) {
 		}
 		for _, n := range c.Names {
 			if n == hc {
-				s += n + c.Help
+				s += n + c.Help + "\n"
 				break
 			}
 		}
 	}
+
 	if s != "" {
 
 		if s[len(s)-1] == '\n' {
