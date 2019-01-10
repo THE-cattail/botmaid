@@ -108,3 +108,11 @@ func (b *Bot) UserNameFromAt(s string) string {
 
 	return ""
 }
+
+// PushBack pushes a message back to the origin place.
+func (b *Bot) PushBack(e *api.Event, m *api.Message) (api.Event, error) {
+	return b.API.Push(api.Event{
+		Message: m,
+		Place:   e.Place,
+	})
+}
