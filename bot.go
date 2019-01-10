@@ -109,10 +109,32 @@ func (b *Bot) UserNameFromAt(s string) string {
 	return ""
 }
 
-// PushBack pushes a message back to the origin place.
-func (b *Bot) PushBack(e *api.Event, m *api.Message) (api.Event, error) {
+// PushBack pushes a text back to the origin place.
+func (b *Bot) PushBack(e *api.Event, t string) (api.Event, error) {
 	return b.API.Push(api.Event{
-		Message: m,
-		Place:   e.Place,
+		Message: &api.Message{
+			Text: t,
+		},
+		Place: e.Place,
+	})
+}
+
+// PushBackImage pushes a image back to the origin place.
+func (b *Bot) PushBackImage(e *api.Event, t string) (api.Event, error) {
+	return b.API.Push(api.Event{
+		Message: &api.Message{
+			Image: t,
+		},
+		Place: e.Place,
+	})
+}
+
+// PushBackAudio pushes a audio back to the origin place.
+func (b *Bot) PushBackAudio(e *api.Event, t string) (api.Event, error) {
+	return b.API.Push(api.Event{
+		Message: &api.Message{
+			Audio: t,
+		},
+		Place: e.Place,
 	})
 }
