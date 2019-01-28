@@ -4,20 +4,19 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/catsworld/api"
 	"github.com/catsworld/random"
 	"github.com/catsworld/slices"
 )
 
-func (bm *BotMaid) pushHelp(hc string, e *api.Event, b *Bot, showUndef bool) {
+func (bm *BotMaid) pushHelp(hc string, u *Update, b *Bot, showUndef bool) {
 	if _, ok := bm.HelpMenus[hc]; ok {
 		s := ""
 
 		for _, v := range bm.Commands {
-			if v.Master && !b.IsMaster(*e.Sender) {
+			if v.Master && !b.IsMaster(*u.User) {
 				continue
 			}
-			if v.Test && !b.IsTestPlace(*e.Place) {
+			if v.Test && !b.IsTestChat(*u.Chat) {
 				continue
 			}
 			if v.Menu == hc {
@@ -29,22 +28,17 @@ func (bm *BotMaid) pushHelp(hc string, e *api.Event, b *Bot, showUndef bool) {
 			s = s[:len(s)-1]
 		}
 
-		b.API.Push(api.Event{
-			Message: &api.Message{
-				Text: s,
-			},
-			Place: e.Place,
-		})
+		b.SendBack(u, s)
 		return
 	}
 
 	s := ""
 
 	for _, c := range bm.Commands {
-		if c.Master && !b.IsMaster(*e.Sender) {
+		if c.Master && !b.IsMaster(*u.User) {
 			continue
 		}
-		if c.Test && !b.IsTestPlace(*e.Place) {
+		if c.Test && !b.IsTestChat(*u.Chat) {
 			continue
 		}
 		for _, n := range c.Names {
@@ -61,12 +55,7 @@ func (bm *BotMaid) pushHelp(hc string, e *api.Event, b *Bot, showUndef bool) {
 			s = s[:len(s)-1]
 		}
 
-		b.API.Push(api.Event{
-			Message: &api.Message{
-				Text: s,
-			},
-			Place: e.Place,
-		})
+		b.SendBack(u, s)
 		return
 	}
 
@@ -74,18 +63,13 @@ func (bm *BotMaid) pushHelp(hc string, e *api.Event, b *Bot, showUndef bool) {
 		return
 	}
 
-	b.API.Push(api.Event{
-		Message: &api.Message{
-			Text: fmt.Sprintf(random.String(bm.Words["undefCommand"]), hc),
-		},
-		Place: e.Place,
-	})
+	b.SendBack(u, fmt.Sprintf(random.String(bm.Words["undefCommand"]), hc))
 }
 
-func (bm *BotMaid) help(e *api.Event, b *Bot) bool {
-	args := SplitCommand(e.Message.Text)
-	if b.IsCommand(e, "help") && len(args) == 1 {
-		s := fmt.Sprintf(random.String(bm.Words["selfIntro"]), e.Sender.NickName) + "\n\n"
+func (bm *BotMaid) help(u *Update, b *Bot) bool {
+	args := SplitCommand(u.Message.Text)
+	if b.IsCommand(u, "help") && len(args) == 1 {
+		s := fmt.Sprintf(random.String(bm.Words["selfIntro"]), u.User.NickName) + "\n\n"
 
 		menus := []string{}
 
@@ -99,10 +83,10 @@ func (bm *BotMaid) help(e *api.Event, b *Bot) bool {
 			f := false
 
 			for _, c := range bm.Commands {
-				if c.Master && !b.IsMaster(*e.Sender) {
+				if c.Master && !b.IsMaster(*u.User) {
 					continue
 				}
-				if c.Test && !b.IsTestPlace(*e.Place) {
+				if c.Test && !b.IsTestChat(*u.Chat) {
 					continue
 				}
 				if c.Menu == k {
@@ -120,33 +104,28 @@ func (bm *BotMaid) help(e *api.Event, b *Bot) bool {
 			s = s[:len(s)-1]
 		}
 
-		b.API.Push(api.Event{
-			Message: &api.Message{
-				Text: s,
-			},
-			Place: e.Place,
-		})
+		b.SendBack(u, s)
 		return true
 	}
 
 	hc := ""
-	if b.IsCommand(e, "help") && len(args) == 2 {
+	if b.IsCommand(u, "help") && len(args) == 2 {
 		hc = args[1]
-	} else if b.IsCommand(e) && len(args) == 2 && slices.In(args[1], "help") {
-		hc = b.extractCommand(e)
+	} else if b.IsCommand(u) && len(args) == 2 && slices.In(args[1], "help") {
+		hc = b.extractCommand(u)
 	} else {
 		return false
 	}
 
-	bm.pushHelp(hc, e, b, true)
+	bm.pushHelp(hc, u, b, true)
 	return true
 }
 
-func (bm *BotMaid) help2(e *api.Event, b *Bot) bool {
-	if b.IsCommand(e) {
-		hc := b.extractCommand(e)
+func (bm *BotMaid) help2(u *Update, b *Bot) bool {
+	if b.IsCommand(u) {
+		hc := b.extractCommand(u)
 
-		bm.pushHelp(hc, e, b, false)
+		bm.pushHelp(hc, u, b, false)
 		return true
 	}
 

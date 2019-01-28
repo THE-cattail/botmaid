@@ -8,7 +8,7 @@ import "time"
 //
 // Send always sends an update and returns it back.
 //
-// Delete always deletes a specific event.
+// Delete always deletes a specific update.
 type API interface {
 	GetUpdates(GetUpdatesConfig) (UpdateChannel, ErrorChannel)
 	Send(Update) (Update, error)
@@ -38,7 +38,7 @@ type ErrorChannel chan error
 
 // GetUpdatesConfig is a struct for getting updates.
 //
-// Limit decides the number of events pulled once.
+// Limit decides the number of updates pulled once.
 // Timeout decides the timeout of long polling.
 // RetryWaitingTime decides decides the time waiting after pulling an error.
 type GetUpdatesConfig struct {

@@ -3,19 +3,15 @@ package botmaid
 import (
 	"fmt"
 	"strings"
-
-	"github.com/catsworld/api"
-	"github.com/catsworld/cqhttp"
-	"github.com/catsworld/tgbot"
 )
 
 // Bot includes some information of a bot.
 type Bot struct {
 	ID string
 
-	API api.API
+	API API
 
-	Self *api.User
+	Self *User
 
 	BotMaid *BotMaid
 }
@@ -26,15 +22,15 @@ type dbMaster struct {
 	UserName string
 }
 
-type dbTestPlace struct {
-	ID        int64
-	BotID     string
-	PlaceType string
-	PlaceID   int64
+type dbTestChat struct {
+	ID       int64
+	BotID    string
+	ChatType string
+	ChatID   int64
 }
 
 // IsMaster checks if a user is master of the bot.
-func (b *Bot) IsMaster(u api.User) bool {
+func (b *Bot) IsMaster(u User) bool {
 	m := dbMaster{}
 	err := b.BotMaid.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND username = $2", b.ID, u.UserName).Scan(&m.ID, &m.BotID, &m.UserName)
 	if err != nil {
@@ -43,10 +39,10 @@ func (b *Bot) IsMaster(u api.User) bool {
 	return true
 }
 
-// IsTestPlace checks if a place is test place of the bot.
-func (b *Bot) IsTestPlace(p api.Place) bool {
-	t := dbTestPlace{}
-	err := b.BotMaid.DB.QueryRow("SELECT * FROM testplaces WHERE bot_id = $1 AND place_type = $2 AND place_id = $3", b.ID, p.Type, p.ID).Scan(&t.ID, &t.BotID, &t.PlaceType, &t.PlaceID)
+// IsTestChat checks if a chat is a test chat of the bot.
+func (b *Bot) IsTestChat(p Chat) bool {
+	t := dbTestChat{}
+	err := b.BotMaid.DB.QueryRow("SELECT * FROM testchats WHERE bot_id = $1 AND chat_type = $2 AND chat_id = $3", b.ID, p.Type, p.ID).Scan(&t.ID, &t.BotID, &t.ChatType, &t.ChatID)
 	if err != nil {
 		return false
 	}
@@ -56,9 +52,9 @@ func (b *Bot) IsTestPlace(p api.Place) bool {
 // Platform returns a string showing the platform of the bot.
 func (b *Bot) Platform() string {
 	switch b.API.(type) {
-	case *cqhttp.API:
+	case *CoolqHTTPAPI:
 		return "QQ"
-	case *tgbot.API:
+	case *TelegramBotAPI:
 		return "Telegram"
 	}
 
@@ -66,26 +62,26 @@ func (b *Bot) Platform() string {
 }
 
 // At returns a string to mention someone in a message.
-func (b *Bot) At(u *api.User) []string {
+func (b *Bot) At(u *User) []string {
 	switch b.API.(type) {
-	case *cqhttp.API:
+	case *CoolqHTTPAPI:
 		return []string{fmt.Sprintf("[CQ:at,qq=%s]", u.UserName), fmt.Sprintf("@%s", u.NickName)}
-	case *tgbot.API:
+	case *TelegramBotAPI:
 		return []string{fmt.Sprintf("@%s", u.UserName)}
 	}
 
 	return []string{fmt.Sprintf("@%s", u.UserName)}
 }
 
-// BeAt checks if a message of an event is mentioning the bot.
-func (b *Bot) BeAt(e *api.Event) bool {
+// BeAt checks if a message of an update is mentioning the bot.
+func (b *Bot) BeAt(u *Update) bool {
 	switch b.API.(type) {
-	case *cqhttp.API:
-		if (strings.Contains(e.Message.Text, fmt.Sprintf("[CQ:at,qq=%s]", b.Self.UserName)) || strings.Contains(e.Message.Text, fmt.Sprintf("@%s", b.Self.NickName))) && b.extractCommand(e) == "" {
+	case *CoolqHTTPAPI:
+		if (strings.Contains(u.Message.Text, fmt.Sprintf("[CQ:at,qq=%s]", b.Self.UserName)) || strings.Contains(u.Message.Text, fmt.Sprintf("@%s", b.Self.NickName))) && b.extractCommand(u) == "" {
 			return true
 		}
-	case *tgbot.API:
-		if strings.Contains(e.Message.Text, fmt.Sprintf("@%s", b.Self.UserName)) && b.extractCommand(e) == "" {
+	case *TelegramBotAPI:
+		if strings.Contains(u.Message.Text, fmt.Sprintf("@%s", b.Self.UserName)) && b.extractCommand(u) == "" {
 			return true
 		}
 	}
@@ -96,11 +92,11 @@ func (b *Bot) BeAt(e *api.Event) bool {
 // UserNameFromAt returns the UserName of the user in the mention query.
 func (b *Bot) UserNameFromAt(s string) string {
 	switch b.API.(type) {
-	case *cqhttp.API:
+	case *CoolqHTTPAPI:
 		if fmt.Sprintf("[CQ:at,qq=%s]", s[10:len(s)-1]) == s {
 			return s[10 : len(s)-1]
 		}
-	case *tgbot.API:
+	case *TelegramBotAPI:
 		if fmt.Sprintf("@%s", s[1:]) == s {
 			return s[1:]
 		}
@@ -109,32 +105,32 @@ func (b *Bot) UserNameFromAt(s string) string {
 	return ""
 }
 
-// PushBack pushes a text back to the origin place.
-func (b *Bot) PushBack(e *api.Event, t string) (api.Event, error) {
-	return b.API.Push(api.Event{
-		Message: &api.Message{
+// SendBack sends a text back to the origin chat.
+func (b *Bot) SendBack(u *Update, t string) (Update, error) {
+	return b.API.Send(Update{
+		Message: &Message{
 			Text: t,
 		},
-		Place: e.Place,
+		Chat: u.Chat,
 	})
 }
 
-// PushBackImage pushes a image back to the origin place.
-func (b *Bot) PushBackImage(e *api.Event, t string) (api.Event, error) {
-	return b.API.Push(api.Event{
-		Message: &api.Message{
+// SendBackImage sends a image back to the origin chat.
+func (b *Bot) SendBackImage(u *Update, t string) (Update, error) {
+	return b.API.Send(Update{
+		Message: &Message{
 			Image: t,
 		},
-		Place: e.Place,
+		Chat: u.Chat,
 	})
 }
 
-// PushBackAudio pushes a audio back to the origin place.
-func (b *Bot) PushBackAudio(e *api.Event, t string) (api.Event, error) {
-	return b.API.Push(api.Event{
-		Message: &api.Message{
+// SendBackAudio sends a audio back to the origin chat.
+func (b *Bot) SendBackAudio(u *Update, t string) (Update, error) {
+	return b.API.Send(Update{
+		Message: &Message{
 			Audio: t,
 		},
-		Place: e.Place,
+		Chat: u.Chat,
 	})
 }

@@ -9,10 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/catsworld/api"
-	"github.com/catsworld/cqhttp"
 	"github.com/catsworld/random"
-	"github.com/catsworld/tgbot"
 
 	"github.com/pelletier/go-toml"
 )
@@ -35,15 +32,15 @@ type BotMaid struct {
 	RespTime time.Time
 }
 
-func (bm *BotMaid) addMaster(e *api.Event, b *Bot) bool {
-	args := SplitCommand(e.Message.Text)
-	if b.IsCommand(e, "addmaster") && len(args) == 2 {
+func (bm *BotMaid) addMaster(u *Update, b *Bot) bool {
+	args := SplitCommand(u.Message.Text)
+	if b.IsCommand(u, "addmaster") && len(args) == 2 {
 		if b.UserNameFromAt(args[1]) == "" {
-			b.API.Push(api.Event{
-				Message: &api.Message{
+			b.API.Send(Update{
+				Message: &Message{
 					Text: fmt.Sprintf(random.String(bm.Words["invalidMaster"]), args[1]),
 				},
-				Place: e.Place,
+				Chat: u.Chat,
 			})
 			return true
 		}
@@ -51,22 +48,22 @@ func (bm *BotMaid) addMaster(e *api.Event, b *Bot) bool {
 		theMaster := dbMaster{}
 		err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND username = $2", b.ID, b.UserNameFromAt(args[1])).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserName)
 		if err == nil {
-			b.API.Push(api.Event{
-				Message: &api.Message{
+			b.API.Send(Update{
+				Message: &Message{
 					Text: fmt.Sprintf(random.String(bm.Words["masterExisted"]), args[1]),
 				},
-				Place: e.Place,
+				Chat: u.Chat,
 			})
 			return true
 		}
 
 		stmt, _ := bm.DB.Prepare("INSERT INTO masters(bot_id, username) VALUES($1, $2)")
 		stmt.Exec(b.ID, b.UserNameFromAt(args[1]))
-		b.API.Push(api.Event{
-			Message: &api.Message{
+		b.API.Send(Update{
+			Message: &Message{
 				Text: fmt.Sprintf(random.String(bm.Words["masterAdded"]), args[1]),
 			},
-			Place: e.Place,
+			Chat: u.Chat,
 		})
 
 		return true
@@ -75,15 +72,15 @@ func (bm *BotMaid) addMaster(e *api.Event, b *Bot) bool {
 	return false
 }
 
-func (bm *BotMaid) removeMaster(e *api.Event, b *Bot) bool {
-	args := SplitCommand(e.Message.Text)
-	if b.IsCommand(e, "rmmaster") && len(args) == 2 {
+func (bm *BotMaid) removeMaster(u *Update, b *Bot) bool {
+	args := SplitCommand(u.Message.Text)
+	if b.IsCommand(u, "rmmaster") && len(args) == 2 {
 		if b.UserNameFromAt(args[1]) == "" {
-			b.API.Push(api.Event{
-				Message: &api.Message{
+			b.API.Send(Update{
+				Message: &Message{
 					Text: fmt.Sprintf(random.String(bm.Words["invalidMaster"]), args[1]),
 				},
-				Place: e.Place,
+				Chat: u.Chat,
 			})
 			return true
 		}
@@ -91,22 +88,22 @@ func (bm *BotMaid) removeMaster(e *api.Event, b *Bot) bool {
 		theMaster := dbMaster{}
 		err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND username = $2", b.ID, b.UserNameFromAt(args[1])).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserName)
 		if err != nil {
-			b.API.Push(api.Event{
-				Message: &api.Message{
+			b.API.Send(Update{
+				Message: &Message{
 					Text: fmt.Sprintf(random.String(bm.Words["masterNotExisted"]), args[1]),
 				},
-				Place: e.Place,
+				Chat: u.Chat,
 			})
 			return true
 		}
 
 		stmt, _ := bm.DB.Prepare("DELETE FROM masters WHERE bot_id = $1 AND username = $2")
 		stmt.Exec(b.ID, b.UserNameFromAt(args[1]))
-		b.API.Push(api.Event{
-			Message: &api.Message{
+		b.API.Send(Update{
+			Message: &Message{
 				Text: fmt.Sprintf(random.String(bm.Words["masterRemoved"]), args[1]),
 			},
-			Place: e.Place,
+			Chat: u.Chat,
 		})
 
 		return true
@@ -115,28 +112,28 @@ func (bm *BotMaid) removeMaster(e *api.Event, b *Bot) bool {
 	return false
 }
 
-func (bm *BotMaid) switchTestPlace(e *api.Event, b *Bot) bool {
-	args := SplitCommand(e.Message.Text)
-	if b.IsCommand(e, "test") && len(args) == 1 {
-		theTestPlace := dbTestPlace{}
-		err := bm.DB.QueryRow("SELECT * FROM testplaces WHERE bot_id = $1 AND place_type = $2 AND place_id = $3", b.ID, e.Place.Type, e.Place.ID).Scan(&theTestPlace.ID, &theTestPlace.BotID, &theTestPlace.PlaceType, &theTestPlace.PlaceID)
+func (bm *BotMaid) switchTestChat(u *Update, b *Bot) bool {
+	args := SplitCommand(u.Message.Text)
+	if b.IsCommand(u, "test") && len(args) == 1 {
+		theTestChat := dbTestChat{}
+		err := bm.DB.QueryRow("SELECT * FROM testchats WHERE bot_id = $1 AND chat_type = $2 AND chat_id = $3", b.ID, u.Chat.Type, u.Chat.ID).Scan(&theTestChat.ID, &theTestChat.BotID, &theTestChat.ChatType, &theTestChat.ChatID)
 		if err != nil {
-			stmt, _ := bm.DB.Prepare("INSERT INTO testplaces(bot_id, place_type, place_id) VALUES($1, $2, $3)")
-			stmt.Exec(b.ID, e.Place.Type, e.Place.ID)
-			b.API.Push(api.Event{
-				Message: &api.Message{
-					Text: random.String(bm.Words["testPlaceAdded"]),
+			stmt, _ := bm.DB.Prepare("INSERT INTO testchats(bot_id, chat_type, chat_id) VALUES($1, $2, $3)")
+			stmt.Exec(b.ID, u.Chat.Type, u.Chat.ID)
+			b.API.Send(Update{
+				Message: &Message{
+					Text: random.String(bm.Words["testChatAdded"]),
 				},
-				Place: e.Place,
+				Chat: u.Chat,
 			})
 		} else {
-			stmt, _ := bm.DB.Prepare("DELETE FROM testplaces WHERE bot_id = $1 AND place_type = $2 AND place_id = $3")
-			stmt.Exec(b.ID, e.Place.Type, e.Place.ID)
-			b.API.Push(api.Event{
-				Message: &api.Message{
-					Text: random.String(bm.Words["testPlaceRemoved"]),
+			stmt, _ := bm.DB.Prepare("DELETE FROM testchats WHERE bot_id = $1 AND chat_type = $2 AND chat_id = $3")
+			stmt.Exec(b.ID, u.Chat.Type, u.Chat.ID)
+			b.API.Send(Update{
+				Message: &Message{
+					Text: random.String(bm.Words["testChatRemoved"]),
 				},
-				Place: e.Place,
+				Chat: u.Chat,
 			})
 		}
 
@@ -170,7 +167,7 @@ func (bm *BotMaid) initCommand() {
 		Master:   true,
 	})
 	bm.AddCommand(Command{
-		Do:       bm.switchTestPlace,
+		Do:       bm.switchTestChat,
 		Priority: 5,
 		Names:    []string{"test"},
 		Help:     " - 切换本场景的测试开关",
@@ -192,11 +189,11 @@ func (bm *BotMaid) initDatabase() error {
 
 	stmt.Exec()
 
-	stmt, err = bm.DB.Prepare(`CREATE TABLE testplaces (
+	stmt, err = bm.DB.Prepare(`CREATE TABLE testchats (
 		id SERIAL primary key,
 		bot_id text,
-		place_type text,
-		place_id bigint not null
+		chat_type text,
+		chat_id bigint not null
 	)`)
 	if err != nil {
 		return fmt.Errorf("Init botmaid database: %v", err)
@@ -216,7 +213,7 @@ func (bm *BotMaid) readBotConfig(section string) (Bot, error) {
 	}
 
 	if botType == "QQ" {
-		q := &cqhttp.API{}
+		q := &CoolqHTTPAPI{}
 
 		if bm.Conf.Get(section+".AccessToken") != nil {
 			if _, ok := bm.Conf.Get(section + ".AccessToken").(string); ok {
@@ -245,7 +242,7 @@ func (bm *BotMaid) readBotConfig(section string) (Bot, error) {
 			}
 
 			u := m.(map[string]interface{})
-			b.Self = &api.User{
+			b.Self = &User{
 				ID:       int64(u["user_id"].(float64)),
 				UserName: strconv.FormatInt(int64(u["user_id"].(float64)), 10),
 				NickName: u["nickname"].(string),
@@ -256,7 +253,7 @@ func (bm *BotMaid) readBotConfig(section string) (Bot, error) {
 
 		b.API = q
 	} else if botType == "Telegram" {
-		t := &tgbot.API{}
+		t := &TelegramBotAPI{}
 
 		if bm.Conf.Get(section+".Token") != nil {
 			if _, ok := bm.Conf.Get(section + ".Token").(string); ok {
@@ -273,7 +270,7 @@ func (bm *BotMaid) readBotConfig(section string) (Bot, error) {
 			}
 
 			u := m.(map[string]interface{})
-			b.Self = &api.User{
+			b.Self = &User{
 				ID:       int64(u["id"].(float64)),
 				NickName: u["first_name"].(string),
 			}
@@ -303,7 +300,7 @@ func (bm *BotMaid) startBot(section string) {
 
 	bm.Bots[section] = &b
 
-	events, errors := b.API.Pull(api.PullConfig{
+	updates, errors := b.API.GetUpdates(GetUpdatesConfig{
 		Limit:            100,
 		Timeout:          60,
 		RetryWaitingTime: time.Second * 3,
@@ -315,11 +312,11 @@ func (bm *BotMaid) startBot(section string) {
 		}
 	}()
 
-	log.Printf("%s (%s) has been loaded. Begin to pull events.\n", b.Self.NickName, b.Platform())
+	log.Printf("%s (%s) has been loaded. Begin to get updates.\n", b.Self.NickName, b.Platform())
 
-	for e := range events {
-		go func(e api.Event) {
-			if !e.Time.After(bm.RespTime) {
+	for u := range updates {
+		go func(u Update) {
+			if !u.Time.After(bm.RespTime) {
 				return
 			}
 
@@ -330,36 +327,36 @@ func (bm *BotMaid) startBot(section string) {
 				}
 			}
 
-			if e.Message == nil {
+			if u.Message == nil {
 				return
 			}
 
-			if !bm.Conf.Get("Test.Test").(bool) || (b.IsTestPlace(*e.Place) && b.BeAt(&e)) {
-				logText := e.Message.Text
+			if !bm.Conf.Get("Test.Test").(bool) || (b.IsTestChat(*u.Chat) && b.BeAt(&u)) {
+				logText := u.Message.Text
 
-				if e.Sender != nil {
-					logText = e.Sender.NickName + "(@" + e.Sender.UserName + "):" + logText
+				if u.User != nil {
+					logText = u.User.NickName + "(@" + u.User.UserName + "):" + logText
 				}
 
-				if e.Place != nil && e.Place.Title != "" {
-					logText = "[" + e.Place.Title + "]" + logText
+				if u.Chat != nil && u.Chat.Title != "" {
+					logText = "[" + u.Chat.Title + "]" + logText
 				}
 
 				log.Println(logText)
 
 				for _, c := range bm.Commands {
-					if !b.IsMaster(*e.Sender) && c.Master {
+					if !b.IsMaster(*u.User) && c.Master {
 						continue
 					}
-					if !b.IsTestPlace(*e.Place) && c.Test {
+					if !b.IsTestChat(*u.Chat) && c.Test {
 						continue
 					}
-					if c.Do(&e, bm.Bots[section]) {
+					if c.Do(&u, bm.Bots[section]) {
 						break
 					}
 				}
 			}
-		}(e)
+		}(u)
 	}
 }
 

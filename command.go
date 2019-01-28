@@ -3,14 +3,12 @@ package botmaid
 import (
 	"regexp"
 	"strings"
-
-	"github.com/catsworld/api"
 )
 
 // Command is a func with priority value so that we can sort some Commands to
 // make them in a specific order.
 type Command struct {
-	Do       func(*api.Event, *Bot) bool
+	Do       func(*Update, *Bot) bool
 	Priority int
 
 	Menu, Help   string
@@ -74,8 +72,8 @@ func GetArgument(c string) []string {
 	return []string{args[0], ret}
 }
 
-func (b *Bot) extractCommand(e *api.Event) string {
-	args := SplitCommand(e.Message.Text)
+func (b *Bot) extractCommand(u *Update) string {
+	args := SplitCommand(u.Message.Text)
 	if len(args) == 0 {
 		return ""
 	}
@@ -99,8 +97,8 @@ func (b *Bot) extractCommand(e *api.Event) string {
 }
 
 // IsCommand checks if a message is a specific command.
-func (b *Bot) IsCommand(e *api.Event, c ...string) bool {
-	s := b.extractCommand(e)
+func (b *Bot) IsCommand(u *Update, c ...string) bool {
+	s := b.extractCommand(u)
 
 	if len(c) == 0 && s != "" {
 		return true

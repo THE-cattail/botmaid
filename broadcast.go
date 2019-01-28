@@ -2,17 +2,15 @@ package botmaid
 
 import (
 	"fmt"
-
-	"github.com/catsworld/api"
 )
 
-// DBBroadcastPlace is a struct saved some information of the place to
+// DBBroadcastChat is a struct saved some information of the chat to
 // broadcast.
-type DBBroadcastPlace struct {
-	ID        int64
-	BotID     string
-	PlaceType string
-	PlaceID   int64
+type DBBroadcastChat struct {
+	ID       int64
+	BotID    string
+	ChatType string
+	ChatID   int64
 }
 
 // InitBroadcastTable creates a table with the standard structure of a
@@ -21,8 +19,8 @@ func (bm *BotMaid) InitBroadcastTable(tableName string) error {
 	stmt, err := bm.DB.Prepare(`CREATE TABLE ` + tableName + ` (
 		id SERIAL primary key,
 		bot_id text,
-		place_type text,
-		place_id bigint not null
+		chat_type text,
+		chat_id bigint not null
 	)`)
 	if err != nil {
 		return fmt.Errorf("Init broadcast table: %v", err)
@@ -33,49 +31,49 @@ func (bm *BotMaid) InitBroadcastTable(tableName string) error {
 	return nil
 }
 
-// Broadcast pushes an event to all places in the table.
-func (bm *BotMaid) Broadcast(tableName string, m *api.Message) {
+// Broadcast sends an update to all chats in the table.
+func (bm *BotMaid) Broadcast(tableName string, m *Message) {
 	rows, err := bm.DB.Query("SELECT * FROM " + tableName)
 	if err != nil {
 		return
 	}
 	defer rows.Close()
 
-	dbPlaces := []DBBroadcastPlace{}
+	dbChats := []DBBroadcastChat{}
 
 	for rows.Next() {
-		thePlace := DBBroadcastPlace{}
-		err := rows.Scan(&thePlace.ID, &thePlace.BotID, &thePlace.PlaceType, &thePlace.PlaceID)
+		theChat := DBBroadcastChat{}
+		err := rows.Scan(&theChat.ID, &theChat.BotID, &theChat.ChatType, &theChat.ChatID)
 		if err != nil {
 			return
 		}
-		dbPlaces = append(dbPlaces, thePlace)
+		dbChats = append(dbChats, theChat)
 	}
 
-	for _, v := range dbPlaces {
+	for _, v := range dbChats {
 		if _, ok := bm.Bots[v.BotID]; !ok {
 			continue
 		}
 
-		bm.Bots[v.BotID].API.Push(api.Event{
+		bm.Bots[v.BotID].API.Send(Update{
 			Message: m,
-			Place: &api.Place{
-				Type: v.PlaceType,
-				ID:   v.PlaceID,
+			Chat: &Chat{
+				Type: v.ChatType,
+				ID:   v.ChatID,
 			},
 		})
 	}
 }
 
-// SwitchBroadcast switches the broadcast on/off of a place.
-func (bm *BotMaid) SwitchBroadcast(tableName string, place *api.Place, b *Bot) {
-	thePlace := DBBroadcastPlace{}
-	err := bm.DB.QueryRow("SELECT * FROM "+tableName+" WHERE bot_id = $1 AND place_type = $2 AND place_id = $3", b.ID, place.Type, place.ID).Scan(&thePlace.ID, &thePlace.BotID, &thePlace.PlaceType, &thePlace.PlaceID)
+// SwitchBroadcast switches the broadcast on/off of a chat.
+func (bm *BotMaid) SwitchBroadcast(tableName string, chat *Chat, b *Bot) {
+	theChat := DBBroadcastChat{}
+	err := bm.DB.QueryRow("SELECT * FROM "+tableName+" WHERE bot_id = $1 AND chat_type = $2 AND chat_id = $3", b.ID, chat.Type, chat.ID).Scan(&theChat.ID, &theChat.BotID, &theChat.ChatType, &theChat.ChatID)
 	if err != nil {
-		stmt, _ := bm.DB.Prepare("INSERT INTO " + tableName + "(bot_id, place_type, place_id) VALUES($1, $2, $3)")
-		stmt.Exec(b.ID, place.Type, place.ID)
+		stmt, _ := bm.DB.Prepare("INSERT INTO " + tableName + "(bot_id, chat_type, chat_id) VALUES($1, $2, $3)")
+		stmt.Exec(b.ID, chat.Type, chat.ID)
 	} else {
-		stmt, _ := bm.DB.Prepare("DELETE FROM " + tableName + " WHERE bot_id = $1 AND place_type = $2 AND place_id = $3")
-		stmt.Exec(b.ID, place.Type, place.ID)
+		stmt, _ := bm.DB.Prepare("DELETE FROM " + tableName + " WHERE bot_id = $1 AND chat_type = $2 AND chat_id = $3")
+		stmt.Exec(b.ID, chat.Type, chat.ID)
 	}
 }
