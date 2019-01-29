@@ -201,6 +201,27 @@ func (bm *BotMaid) initDatabase() error {
 
 	stmt.Exec()
 
+	stmt, err = bm.DB.Prepare(`ALTER TABLE testplaces RENAME TO testchats`)
+	if err != nil {
+		return fmt.Errorf("Init botmaid database: %v", err)
+	}
+
+	stmt.Exec()
+
+	stmt, err = bm.DB.Prepare(`ALTER TABLE testplaces RENAME place_type TO chat_type`)
+	if err != nil {
+		return fmt.Errorf("Init botmaid database: %v", err)
+	}
+
+	stmt.Exec()
+
+	stmt, err = bm.DB.Prepare(`ALTER TABLE testplaces RENAME place_id TO chat_id`)
+	if err != nil {
+		return fmt.Errorf("Init botmaid database: %v", err)
+	}
+
+	stmt.Exec()
+
 	return nil
 }
 
