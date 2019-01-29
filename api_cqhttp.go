@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -196,17 +197,25 @@ func (a *CoolqHTTPAPI) Send(update Update) (Update, error) {
 	message := ""
 
 	if update.Message.Audio != "" {
-		file, err := ioutil.ReadFile(update.Message.Audio)
-		if err != nil {
-			return Update{}, fmt.Errorf("Read audio file: %v", err)
+		if strings.HasPrefix(update.Message.Audio, "http://") || strings.HasPrefix(update.Message.Audio, "https://") {
+			message += fmt.Sprintf("[CQ:record,file=%s", update.Message.Audio)
+		} else {
+			file, err := ioutil.ReadFile(update.Message.Audio)
+			if err != nil {
+				return Update{}, fmt.Errorf("Read audio file: %v", err)
+			}
+			message += fmt.Sprintf("[CQ:record,file=base64://%s]", base64.StdEncoding.EncodeToString(file))
 		}
-		message += fmt.Sprintf("[CQ:record,file=base64://%s]", base64.StdEncoding.EncodeToString(file))
 	} else if update.Message.Image != "" {
-		file, err := ioutil.ReadFile(update.Message.Image)
-		if err != nil {
-			return Update{}, fmt.Errorf("Read image file: %v", err)
+		if strings.HasPrefix(update.Message.Image, "http://") || strings.HasPrefix(update.Message.Image, "https://") {
+			message += fmt.Sprintf("[CQ:image,file=%s", update.Message.Image)
+		} else {
+			file, err := ioutil.ReadFile(update.Message.Image)
+			if err != nil {
+				return Update{}, fmt.Errorf("Read image file: %v", err)
+			}
+			message += fmt.Sprintf("[CQ:image,file=base64://%s]", base64.StdEncoding.EncodeToString(file))
 		}
-		message += fmt.Sprintf("[CQ:image,file=base64://%s]", base64.StdEncoding.EncodeToString(file))
 	} else {
 		message += update.Message.Text
 	}

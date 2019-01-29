@@ -241,19 +241,23 @@ func (a *TelegramBotAPI) Send(update Update) (Update, error) {
 
 		ct := "multipart/form-data; boundary=" + w.Boundary()
 
-		_ = w.WriteField("chat_id", strconv.FormatInt(update.Chat.ID, 10))
+		w.WriteField("chat_id", strconv.FormatInt(update.Chat.ID, 10))
 
-		file, err := ioutil.ReadFile(update.Message.Image)
-		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendPhoto", err)
+		if strings.HasPrefix(update.Message.Image, "http://") || strings.HasPrefix(update.Message.Image, "https://") {
+			w.WriteField("photo", update.Message.Image)
+		} else {
+			file, err := ioutil.ReadFile(update.Message.Image)
+			if err != nil {
+				return Update{}, fmt.Errorf("Send image: API %s: %v", "sendPhoto", err)
+			}
+
+			part, err := w.CreateFormFile("photo", filepath.Base(update.Message.Image))
+			if err != nil {
+				return Update{}, fmt.Errorf("Send image: API %s: %v", "sendPhoto", err)
+			}
+
+			part.Write(file)
 		}
-
-		part, err := w.CreateFormFile("photo", filepath.Base(update.Message.Image))
-		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendPhoto", err)
-		}
-
-		part.Write(file)
 		w.Close()
 
 		header := http.Header{}
@@ -303,20 +307,24 @@ func (a *TelegramBotAPI) Send(update Update) (Update, error) {
 
 		ct := "multipart/form-data; boundary=" + w.Boundary()
 
-		_ = w.WriteField("chat_id", strconv.FormatInt(update.Chat.ID, 10))
+		w.WriteField("chat_id", strconv.FormatInt(update.Chat.ID, 10))
 
-		file, err := ioutil.ReadFile(update.Message.Audio)
-		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendVoice", err)
+		if strings.HasPrefix(update.Message.Audio, "http://") || strings.HasPrefix(update.Message.Audio, "https://") {
+			w.WriteField("voice", update.Message.Audio)
+		} else {
+			file, err := ioutil.ReadFile(update.Message.Audio)
+			if err != nil {
+				return Update{}, fmt.Errorf("Send audio: API %s: %v", "sendVoice", err)
+			}
+
+			part, err := w.CreateFormFile("voice", filepath.Base(update.Message.Audio))
+			if err != nil {
+				return Update{}, fmt.Errorf("Send audio: API %s: %v", "sendVoice", err)
+			}
+
+			part.Write(file)
+			w.Close()
 		}
-
-		part, err := w.CreateFormFile("voice", filepath.Base(update.Message.Audio))
-		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendVoice", err)
-		}
-
-		part.Write(file)
-		w.Close()
 
 		header := http.Header{}
 		header.Add("Content-Type", ct)
