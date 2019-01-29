@@ -198,7 +198,7 @@ func (a *CoolqHTTPAPI) Send(update Update) (Update, error) {
 
 	if update.Message.Audio != "" {
 		if strings.HasPrefix(update.Message.Audio, "http://") || strings.HasPrefix(update.Message.Audio, "https://") {
-			message += fmt.Sprintf("[CQ:record,file=%s", update.Message.Audio)
+			message += fmt.Sprintf("[CQ:record,file=%s]", update.Message.Audio)
 		} else {
 			file, err := ioutil.ReadFile(update.Message.Audio)
 			if err != nil {
@@ -208,7 +208,7 @@ func (a *CoolqHTTPAPI) Send(update Update) (Update, error) {
 		}
 	} else if update.Message.Image != "" {
 		if strings.HasPrefix(update.Message.Image, "http://") || strings.HasPrefix(update.Message.Image, "https://") {
-			message += fmt.Sprintf("[CQ:image,file=%s", update.Message.Image)
+			message += fmt.Sprintf("[CQ:image,file=%s]", update.Message.Image)
 		} else {
 			file, err := ioutil.ReadFile(update.Message.Image)
 			if err != nil {
