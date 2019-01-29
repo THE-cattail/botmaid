@@ -28,6 +28,20 @@ func (bm *BotMaid) InitBroadcastTable(tableName string) error {
 
 	stmt.Exec()
 
+	stmt, err = bm.DB.Prepare(`ALTER TABLE ` + tableName + ` RENAME place_type TO chat_type`)
+	if err != nil {
+		return fmt.Errorf("Init broadcast table: %v", err)
+	}
+
+	stmt.Exec()
+
+	stmt, err = bm.DB.Prepare(`ALTER TABLE ` + tableName + ` RENAME place_id TO chat_id`)
+	if err != nil {
+		return fmt.Errorf("Init broadcast table: %v", err)
+	}
+
+	stmt.Exec()
+
 	return nil
 }
 
