@@ -28,7 +28,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, b *Bot, showUndef bool) {
 			s = s[:len(s)-1]
 		}
 
-		b.SendBack(u, s)
+		b.Reply(u, s)
 		return
 	}
 
@@ -55,7 +55,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, b *Bot, showUndef bool) {
 			s = s[:len(s)-1]
 		}
 
-		b.SendBack(u, s)
+		b.Reply(u, s)
 		return
 	}
 
@@ -63,7 +63,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, b *Bot, showUndef bool) {
 		return
 	}
 
-	b.SendBack(u, fmt.Sprintf(random.String(bm.Words["undefCommand"]), hc))
+	b.Reply(u, fmt.Sprintf(random.String(bm.Words["undefCommand"]), hc))
 }
 
 func (bm *BotMaid) help(u *Update, b *Bot) bool {
@@ -104,7 +104,7 @@ func (bm *BotMaid) help(u *Update, b *Bot) bool {
 			s = s[:len(s)-1]
 		}
 
-		b.SendBack(u, s)
+		b.Reply(u, s)
 		return true
 	}
 

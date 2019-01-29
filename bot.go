@@ -1,6 +1,7 @@
 package botmaid
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -105,32 +106,34 @@ func (b *Bot) UserNameFromAt(s string) string {
 	return ""
 }
 
-// SendBack sends a text back to the origin chat.
-func (b *Bot) SendBack(u *Update, t string) (Update, error) {
-	return b.API.Send(Update{
-		Message: &Message{
-			Text: t,
-		},
-		Chat: u.Chat,
-	})
-}
-
-// SendBackImage sends a image back to the origin chat.
-func (b *Bot) SendBackImage(u *Update, t string) (Update, error) {
-	return b.API.Send(Update{
-		Message: &Message{
-			Image: t,
-		},
-		Chat: u.Chat,
-	})
-}
-
-// SendBackAudio sends a audio back to the origin chat.
-func (b *Bot) SendBackAudio(u *Update, t string) (Update, error) {
-	return b.API.Send(Update{
-		Message: &Message{
-			Audio: t,
-		},
-		Chat: u.Chat,
-	})
+// Reply replies a message back.
+func (b *Bot) Reply(u *Update, s ...string) (Update, error) {
+	if len(s) < 1 || len(s) > 2 {
+		return Update{}, errors.New("Invalid number of arguments")
+	}
+	if len(s) == 1 || s[1] == "Text" {
+		return b.API.Send(Update{
+			Message: &Message{
+				Text: s[0],
+			},
+			Chat: u.Chat,
+		})
+	}
+	if s[1] == "Image" {
+		return b.API.Send(Update{
+			Message: &Message{
+				Image: s[0],
+			},
+			Chat: u.Chat,
+		})
+	}
+	if s[1] == "Audio" {
+		return b.API.Send(Update{
+			Message: &Message{
+				Audio: s[0],
+			},
+			Chat: u.Chat,
+		})
+	}
+	return Update{}, errors.New("Invalid type of message")
 }
