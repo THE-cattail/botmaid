@@ -153,25 +153,28 @@ func (bm *BotMaid) initCommand() {
 		Priority: -10000,
 	})
 	bm.AddCommand(Command{
-		Do:       bm.addMaster,
-		Priority: 5,
-		Names:    []string{"addmaster"},
-		Help:     " <@某人> - 将某人设为 Master",
-		Master:   true,
+		Do:     bm.addMaster,
+		Names:  []string{"addmaster"},
+		Help:   " <@某人> - 将某人设为 Master",
+		Master: true,
 	})
 	bm.AddCommand(Command{
-		Do:       bm.removeMaster,
-		Priority: 5,
-		Names:    []string{"rmmaster"},
-		Help:     " <@某人> - 取消某人的 Master 资格",
-		Master:   true,
+		Do:     bm.removeMaster,
+		Names:  []string{"rmmaster"},
+		Help:   " <@某人> - 取消某人的 Master 资格",
+		Master: true,
 	})
 	bm.AddCommand(Command{
-		Do:       bm.switchTestChat,
-		Priority: 5,
-		Names:    []string{"test"},
-		Help:     " - 切换本场景的测试开关",
-		Master:   true,
+		Do:     bm.switchTestChat,
+		Names:  []string{"test"},
+		Help:   " - 切换本场景的测试开关",
+		Master: true,
+	})
+	bm.AddCommand(Command{
+		Do:     bm.status,
+		Names:  []string{"status"},
+		Help:   " - 查看 Bot 状态",
+		Master: true,
 	})
 
 	sort.Stable(CommandSlice(bm.Commands))
@@ -407,7 +410,11 @@ func (bm *BotMaid) loadTimers() {
 
 		go func(v Timer) {
 			for {
-				if v.Frequency == "daily" {
+				if v.Frequency == "hourly" {
+					for time.Now().After(v.Time) {
+						v.Time = v.Time.Add(time.Hour)
+					}
+				} else if v.Frequency == "daily" {
 					for time.Now().After(v.Time) {
 						v.Time = v.Time.AddDate(0, 0, 1)
 					}
@@ -454,4 +461,14 @@ func (bm *BotMaid) Start() error {
 	bm.loadTimers()
 
 	select {}
+}
+
+// In checks if the element is in the slice.
+func In(a interface{}, s ...interface{}) bool {
+	for _, v := range s {
+		if v == a {
+			return true
+		}
+	}
+	return false
 }

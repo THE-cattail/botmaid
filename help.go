@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	"github.com/catsworld/random"
-	"github.com/catsworld/slices"
 )
 
 func (bm *BotMaid) pushHelp(hc string, u *Update, b *Bot, showUndef bool) {
@@ -111,7 +110,7 @@ func (bm *BotMaid) help(u *Update, b *Bot) bool {
 	hc := ""
 	if b.IsCommand(u, "help") && len(args) == 2 {
 		hc = args[1]
-	} else if b.IsCommand(u) && len(args) == 2 && slices.In(args[1], "help") {
+	} else if b.IsCommand(u) && len(args) == 2 && In(args[1], "help") {
 		hc = b.extractCommand(u)
 	} else {
 		return false
