@@ -9,7 +9,7 @@ import (
 type Timer struct {
 	Do        func()
 	Time      time.Time
-	Frequency string
+	Frequency time.Duration
 }
 
 // AddTimer adds a timer into the []Timer.

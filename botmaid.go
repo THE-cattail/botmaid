@@ -404,39 +404,21 @@ func (bm *BotMaid) loadBots() error {
 
 func (bm *BotMaid) loadTimers() {
 	for _, v := range bm.Timers {
-		if v.Frequency == "once" && time.Now().After(v.Time) {
+		if v.Frequency == 0 && time.Now().After(v.Time) {
 			continue
 		}
 
 		go func(v Timer) {
 			for {
-				if v.Frequency == "hourly" {
-					for time.Now().After(v.Time) {
-						v.Time = v.Time.Add(time.Hour)
-					}
-				} else if v.Frequency == "daily" {
-					for time.Now().After(v.Time) {
-						v.Time = v.Time.AddDate(0, 0, 1)
-					}
-				} else if v.Frequency == "weekly" {
-					for time.Now().After(v.Time) {
-						v.Time = v.Time.AddDate(0, 0, 7)
-					}
-				} else if v.Frequency == "monthly" {
-					for time.Now().After(v.Time) {
-						v.Time = v.Time.AddDate(0, 1, 0)
-					}
-				} else if v.Frequency == "yearly" {
-					for time.Now().After(v.Time) {
-						v.Time = v.Time.AddDate(1, 0, 0)
-					}
+				for time.Now().After(v.Time) {
+					v.Time = v.Time.Add(v.Frequency)
 				}
 
 				timer := time.NewTimer(-time.Since(v.Time))
 				<-timer.C
 				v.Do()
 
-				if v.Frequency == "once" {
+				if v.Frequency == 0 {
 					break
 				}
 			}
