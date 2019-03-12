@@ -420,7 +420,7 @@ func (bm *BotMaid) loadTimers() {
 				<-timer.C
 				v.Do()
 
-				if v.Frequency == 0 || next.After(v.End) {
+				if v.Frequency == 0 || (v.End != time.Time{} && next.After(v.End)) {
 					break
 				}
 			}
