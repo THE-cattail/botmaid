@@ -7,9 +7,9 @@ import (
 // Timer is a func with time and frequency so that we can call it at some
 // specific time.
 type Timer struct {
-	Do        func()
-	Time      time.Time
-	Frequency time.Duration
+	Do         func()
+	Start, End time.Time
+	Frequency  time.Duration
 }
 
 // AddTimer adds a timer into the []Timer.

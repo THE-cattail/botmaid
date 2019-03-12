@@ -404,21 +404,23 @@ func (bm *BotMaid) loadBots() error {
 
 func (bm *BotMaid) loadTimers() {
 	for _, v := range bm.Timers {
-		if v.Frequency == 0 && time.Now().After(v.Time) {
+		next := v.Start
+
+		if v.Frequency == 0 && time.Now().After(next) {
 			continue
 		}
 
 		go func(v Timer) {
 			for {
-				for time.Now().After(v.Time) {
-					v.Time = v.Time.Add(v.Frequency)
+				for time.Now().After(next) {
+					next = next.Add(v.Frequency)
 				}
 
-				timer := time.NewTimer(-time.Since(v.Time))
+				timer := time.NewTimer(-time.Since(next))
 				<-timer.C
 				v.Do()
 
-				if v.Frequency == 0 {
+				if v.Frequency == 0 || next.After(v.End) {
 					break
 				}
 			}
