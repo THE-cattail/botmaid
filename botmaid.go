@@ -360,11 +360,15 @@ func (bm *BotMaid) loadTimers() {
 					next = next.Add(v.Frequency)
 				}
 
+				if v.End.IsZero() && next.After(v.End) {
+					break
+				}
+
 				timer := time.NewTimer(-time.Since(next))
 				<-timer.C
 				v.Do()
 
-				if v.Frequency == 0 || (v.End != time.Time{} && next.After(v.End)) {
+				if v.Frequency == 0 {
 					break
 				}
 			}
