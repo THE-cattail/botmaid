@@ -68,7 +68,7 @@ func (b *Bot) At(u *User) []string {
 	case *CoolqHTTPAPI:
 		return []string{fmt.Sprintf("[CQ:at,qq=%v]", u.ID), fmt.Sprintf("@%s", u.NickName)}
 	case *TelegramBotAPI:
-		return []string{fmt.Sprintf("tg://user?id=%v", u.ID)}
+		return []string{fmt.Sprintf("tg://user?id=%v", u.ID), fmt.Sprintf("@%s", u.UserName)}
 	}
 
 	return []string{fmt.Sprintf("@%v", u.ID)}
