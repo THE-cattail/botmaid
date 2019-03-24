@@ -108,7 +108,10 @@ func (a *TelegramBotAPI) mapToUpdates(m []interface{}) ([]Update, error) {
 				if _, ok := m["reply_to_message"]; ok {
 					r := m["reply_to_message"].(map[string]interface{})
 					if _, ok := r["from"]; ok {
-						update.Message.Text = fmt.Sprintf("tg://user?id=%v", int64(r["from"].(map[string]interface{})["id"].(float64))) + " " + update.Message.Text
+						u := r["from"].(map[string]interface{})
+						if _, ok := u["username"]; ok {
+							update.Message.Text = fmt.Sprintf("@%s", r["from"].(map[string]interface{})["username"].(string)) + " " + update.Message.Text
+						}
 					}
 				}
 			}
