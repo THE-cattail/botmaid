@@ -6,13 +6,12 @@ import "time"
 //
 // GetUpdates always gets updates and errors into the channels with a given config.
 //
-// Send always sends an update and returns it back.
+// Push always pushes an update and returns it back if existing.
 //
 // Delete always deletes a specific update.
 type API interface {
 	GetUpdates(GetUpdatesConfig) (UpdateChannel, ErrorChannel)
-	Send(Update) (Update, error)
-	Delete(Update) error
+	Push(Update) (Update, error)
 }
 
 // Update is a struct for an update of APIs.
@@ -54,6 +53,8 @@ type Message struct {
 	Text  string
 	Image string
 	Audio string
+
+	Args []string
 }
 
 // Chat is a struct for a chat.

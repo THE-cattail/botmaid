@@ -9,6 +9,7 @@ import (
 // make them in a specific order.
 type Command struct {
 	Do       func(*Update, *Bot) bool
+	Check    func(*Update, *Bot) bool
 	Priority int
 
 	Menu, Help   string

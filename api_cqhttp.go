@@ -178,8 +178,19 @@ func (a *CoolqHTTPAPI) GetUpdates(pc GetUpdatesConfig) (UpdateChannel, ErrorChan
 	return updates, errors
 }
 
-// Send sends an update and returns it back.
-func (a *CoolqHTTPAPI) Send(update Update) (Update, error) {
+// Push pushes an update and returns it back if existing.
+func (a *CoolqHTTPAPI) Push(update Update) (Update, error) {
+	if update.Type == "delete" {
+		_, err := a.API("delete_msg", map[string]interface{}{
+			"message_id": update.ID,
+		})
+		if err != nil {
+			return Update{}, fmt.Errorf("Delete message: %v", err)
+		}
+
+		return Update{}, nil
+	}
+
 	m := map[string]interface{}{
 		"message_type": update.Chat.Type,
 	}
@@ -230,16 +241,4 @@ func (a *CoolqHTTPAPI) Send(update Update) (Update, error) {
 	update.ID = int64(msg.(map[string]interface{})["message_id"].(float64))
 
 	return update, nil
-}
-
-// Delete deletes a specific update.
-func (a *CoolqHTTPAPI) Delete(update Update) error {
-	_, err := a.API("delete_msg", map[string]interface{}{
-		"message_id": update.ID,
-	})
-	if err != nil {
-		return fmt.Errorf("Delete message: %v", err)
-	}
-
-	return nil
 }

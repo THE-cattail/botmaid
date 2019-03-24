@@ -7,28 +7,36 @@ import (
 	"github.com/catsworld/random"
 )
 
+// HelpMenu describes the menu item of the help.
+type HelpMenu struct {
+	Menu, Help string
+	Names      []string
+}
+
 func (bm *BotMaid) pushHelp(hc string, u *Update, b *Bot, showUndef bool) {
-	if _, ok := bm.HelpMenus[hc]; ok {
-		s := ""
+	for _, v := range bm.HelpMenus {
+		if hc == v.Menu || In(hc, v.Names) {
+			s := ""
 
-		for _, v := range bm.Commands {
-			if v.Master && !b.IsMaster(*u.User) {
-				continue
+			for _, v := range bm.Commands {
+				if v.Master && !b.IsMaster(*u.User) {
+					continue
+				}
+				if v.Test && !b.IsTestChat(*u.Chat) {
+					continue
+				}
+				if v.Menu == hc {
+					s += v.Names[0] + v.Help + "\n"
+				}
 			}
-			if v.Test && !b.IsTestChat(*u.Chat) {
-				continue
+
+			if len(s) > 0 && s[len(s)-1] == '\n' {
+				s = s[:len(s)-1]
 			}
-			if v.Menu == hc {
-				s += v.Names[0] + v.Help + "\n"
-			}
+
+			b.Reply(u, s)
+			return
 		}
-
-		if len(s) > 0 && s[len(s)-1] == '\n' {
-			s = s[:len(s)-1]
-		}
-
-		b.Reply(u, s)
-		return
 	}
 
 	s := ""
@@ -72,8 +80,8 @@ func (bm *BotMaid) help(u *Update, b *Bot) bool {
 
 		menus := []string{}
 
-		for k := range bm.HelpMenus {
-			menus = append(menus, k)
+		for _, v := range bm.HelpMenus {
+			menus = append(menus, v.Menu)
 		}
 
 		sort.Strings(menus)
@@ -95,7 +103,12 @@ func (bm *BotMaid) help(u *Update, b *Bot) bool {
 			}
 
 			if f {
-				s += k + " - " + bm.HelpMenus[k] + "\n"
+				for _, v := range bm.HelpMenus {
+					if k == v.Menu || In(k, v.Names) {
+						s += k + " - " + v.Help + "\n"
+						break
+					}
+				}
 			}
 		}
 

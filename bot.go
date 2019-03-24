@@ -18,9 +18,9 @@ type Bot struct {
 }
 
 type dbMaster struct {
-	ID       int64
-	BotID    string
-	UserName string
+	ID     int64
+	BotID  string
+	UserID int64
 }
 
 type dbTestChat struct {
@@ -33,7 +33,7 @@ type dbTestChat struct {
 // IsMaster checks if a user is master of the bot.
 func (b *Bot) IsMaster(u User) bool {
 	m := dbMaster{}
-	err := b.BotMaid.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND username = $2", b.ID, u.UserName).Scan(&m.ID, &m.BotID, &m.UserName)
+	err := b.BotMaid.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND user_id = $2", b.ID, u.ID).Scan(&m.ID, &m.BotID, &m.UserID)
 	if err != nil {
 		return false
 	}
@@ -66,19 +66,19 @@ func (b *Bot) Platform() string {
 func (b *Bot) At(u *User) []string {
 	switch b.API.(type) {
 	case *CoolqHTTPAPI:
-		return []string{fmt.Sprintf("[CQ:at,qq=%s]", u.UserName), fmt.Sprintf("@%s", u.NickName)}
+		return []string{fmt.Sprintf("[CQ:at,qq=%v]", u.ID), fmt.Sprintf("@%s", u.NickName)}
 	case *TelegramBotAPI:
-		return []string{fmt.Sprintf("@%s", u.UserName)}
+		return []string{fmt.Sprintf("tg://user?id=%v", u.ID)}
 	}
 
-	return []string{fmt.Sprintf("@%s", u.UserName)}
+	return []string{fmt.Sprintf("@%v", u.ID)}
 }
 
 // BeAt checks if a message of an update is mentioning the bot.
 func (b *Bot) BeAt(u *Update) bool {
 	switch b.API.(type) {
 	case *CoolqHTTPAPI:
-		if (strings.Contains(u.Message.Text, fmt.Sprintf("[CQ:at,qq=%s]", b.Self.UserName)) || strings.Contains(u.Message.Text, fmt.Sprintf("@%s", b.Self.NickName))) && b.extractCommand(u) == "" {
+		if (strings.Contains(u.Message.Text, fmt.Sprintf("[CQ:at,qq=%v]", b.Self.ID)) || strings.Contains(u.Message.Text, fmt.Sprintf("@%s", b.Self.NickName))) && b.extractCommand(u) == "" {
 			return true
 		}
 	case *TelegramBotAPI:
@@ -90,29 +90,13 @@ func (b *Bot) BeAt(u *Update) bool {
 	return false
 }
 
-// UserNameFromAt returns the UserName of the user in the mention query.
-func (b *Bot) UserNameFromAt(s string) string {
-	switch b.API.(type) {
-	case *CoolqHTTPAPI:
-		if fmt.Sprintf("[CQ:at,qq=%s]", s[10:len(s)-1]) == s {
-			return s[10 : len(s)-1]
-		}
-	case *TelegramBotAPI:
-		if fmt.Sprintf("@%s", s[1:]) == s {
-			return s[1:]
-		}
-	}
-
-	return ""
-}
-
 // Reply replies a message back.
 func (b *Bot) Reply(u *Update, s ...string) (Update, error) {
 	if len(s) < 1 || len(s) > 2 {
 		return Update{}, errors.New("Invalid number of arguments")
 	}
 	if len(s) == 1 || s[1] == "Text" {
-		return b.API.Send(Update{
+		return b.API.Push(Update{
 			Message: &Message{
 				Text: s[0],
 			},
@@ -120,7 +104,7 @@ func (b *Bot) Reply(u *Update, s ...string) (Update, error) {
 		})
 	}
 	if s[1] == "Image" {
-		return b.API.Send(Update{
+		return b.API.Push(Update{
 			Message: &Message{
 				Image: s[0],
 			},
@@ -128,7 +112,7 @@ func (b *Bot) Reply(u *Update, s ...string) (Update, error) {
 		})
 	}
 	if s[1] == "Audio" {
-		return b.API.Send(Update{
+		return b.API.Push(Update{
 			Message: &Message{
 				Audio: s[0],
 			},

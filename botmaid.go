@@ -25,7 +25,7 @@ type BotMaid struct {
 	Commands []Command
 	Timers   []Timer
 
-	HelpMenus map[string]string
+	HelpMenus []HelpMenu
 
 	Words map[string][]string
 
@@ -35,36 +35,16 @@ type BotMaid struct {
 func (bm *BotMaid) addMaster(u *Update, b *Bot) bool {
 	args := SplitCommand(u.Message.Text)
 	if b.IsCommand(u, "addmaster") && len(args) == 2 {
-		if b.UserNameFromAt(args[1]) == "" {
-			b.API.Send(Update{
-				Message: &Message{
-					Text: fmt.Sprintf(random.String(bm.Words["invalidMaster"]), args[1]),
-				},
-				Chat: u.Chat,
-			})
-			return true
-		}
-
 		theMaster := dbMaster{}
-		err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND username = $2", b.ID, b.UserNameFromAt(args[1])).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserName)
+		err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND user_id = $2", b.ID, args[1]).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserID)
 		if err == nil {
-			b.API.Send(Update{
-				Message: &Message{
-					Text: fmt.Sprintf(random.String(bm.Words["masterExisted"]), args[1]),
-				},
-				Chat: u.Chat,
-			})
+			b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterExisted"]), args[1]))
 			return true
 		}
 
-		stmt, _ := bm.DB.Prepare("INSERT INTO masters(bot_id, username) VALUES($1, $2)")
-		stmt.Exec(b.ID, b.UserNameFromAt(args[1]))
-		b.API.Send(Update{
-			Message: &Message{
-				Text: fmt.Sprintf(random.String(bm.Words["masterAdded"]), args[1]),
-			},
-			Chat: u.Chat,
-		})
+		stmt, _ := bm.DB.Prepare("INSERT INTO masters(bot_id, user_id) VALUES($1, $2)")
+		stmt.Exec(b.ID, args[1])
+		b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterAdded"]), args[1]))
 
 		return true
 	}
@@ -75,36 +55,16 @@ func (bm *BotMaid) addMaster(u *Update, b *Bot) bool {
 func (bm *BotMaid) removeMaster(u *Update, b *Bot) bool {
 	args := SplitCommand(u.Message.Text)
 	if b.IsCommand(u, "rmmaster") && len(args) == 2 {
-		if b.UserNameFromAt(args[1]) == "" {
-			b.API.Send(Update{
-				Message: &Message{
-					Text: fmt.Sprintf(random.String(bm.Words["invalidMaster"]), args[1]),
-				},
-				Chat: u.Chat,
-			})
-			return true
-		}
-
 		theMaster := dbMaster{}
-		err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND username = $2", b.ID, b.UserNameFromAt(args[1])).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserName)
+		err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND user_id = $2", b.ID, args[1]).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserID)
 		if err != nil {
-			b.API.Send(Update{
-				Message: &Message{
-					Text: fmt.Sprintf(random.String(bm.Words["masterNotExisted"]), args[1]),
-				},
-				Chat: u.Chat,
-			})
+			b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterNotExisted"]), args[1]))
 			return true
 		}
 
-		stmt, _ := bm.DB.Prepare("DELETE FROM masters WHERE bot_id = $1 AND username = $2")
-		stmt.Exec(b.ID, b.UserNameFromAt(args[1]))
-		b.API.Send(Update{
-			Message: &Message{
-				Text: fmt.Sprintf(random.String(bm.Words["masterRemoved"]), args[1]),
-			},
-			Chat: u.Chat,
-		})
+		stmt, _ := bm.DB.Prepare("DELETE FROM masters WHERE bot_id = $1 AND user_id = $2")
+		stmt.Exec(b.ID, args[1])
+		b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterRemoved"]), args[1]))
 
 		return true
 	}
@@ -120,21 +80,11 @@ func (bm *BotMaid) switchTestChat(u *Update, b *Bot) bool {
 		if err != nil {
 			stmt, _ := bm.DB.Prepare("INSERT INTO testchats(bot_id, chat_type, chat_id) VALUES($1, $2, $3)")
 			stmt.Exec(b.ID, u.Chat.Type, u.Chat.ID)
-			b.API.Send(Update{
-				Message: &Message{
-					Text: random.String(bm.Words["testChatAdded"]),
-				},
-				Chat: u.Chat,
-			})
+			b.Reply(u, random.String(bm.Words["testChatAdded"]))
 		} else {
 			stmt, _ := bm.DB.Prepare("DELETE FROM testchats WHERE bot_id = $1 AND chat_type = $2 AND chat_id = $3")
 			stmt.Exec(b.ID, u.Chat.Type, u.Chat.ID)
-			b.API.Send(Update{
-				Message: &Message{
-					Text: random.String(bm.Words["testChatRemoved"]),
-				},
-				Chat: u.Chat,
-			})
+			b.Reply(u, random.String(bm.Words["testChatRemoved"]))
 		}
 
 		return true
@@ -184,12 +134,11 @@ func (bm *BotMaid) initDatabase() error {
 	stmt, err := bm.DB.Prepare(`CREATE TABLE masters (
 		id SERIAL primary key,
 		bot_id text,
-		username text
+		user_id bigint not null
 	)`)
 	if err != nil {
 		return fmt.Errorf("Init botmaid database: %v", err)
 	}
-
 	stmt.Exec()
 
 	stmt, err = bm.DB.Prepare(`CREATE TABLE testchats (
@@ -201,28 +150,6 @@ func (bm *BotMaid) initDatabase() error {
 	if err != nil {
 		return fmt.Errorf("Init botmaid database: %v", err)
 	}
-
-	stmt.Exec()
-
-	stmt, err = bm.DB.Prepare(`ALTER TABLE testplaces RENAME TO testchats`)
-	if err != nil {
-		return fmt.Errorf("Init botmaid database: %v", err)
-	}
-
-	stmt.Exec()
-
-	stmt, err = bm.DB.Prepare(`ALTER TABLE testplaces RENAME place_type TO chat_type`)
-	if err != nil {
-		return fmt.Errorf("Init botmaid database: %v", err)
-	}
-
-	stmt.Exec()
-
-	stmt, err = bm.DB.Prepare(`ALTER TABLE testplaces RENAME place_id TO chat_id`)
-	if err != nil {
-		return fmt.Errorf("Init botmaid database: %v", err)
-	}
-
 	stmt.Exec()
 
 	return nil
@@ -254,6 +181,19 @@ func (bm *BotMaid) readBotConfig(section string) (Bot, error) {
 		if bm.Conf.Get(section+".APIEndpoint") != nil {
 			if _, ok := bm.Conf.Get(section + ".APIEndpoint").(string); ok {
 				q.APIEndpoint = bm.Conf.Get(section + ".APIEndpoint").(string)
+			}
+		}
+
+		if bm.Conf.Get(section+".Master") != nil {
+			if _, ok := bm.Conf.Get(section + ".Master").([]int64); ok {
+				for _, v := range bm.Conf.Get(section + ".Master").([]int64) {
+					theMaster := dbMaster{}
+					err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND user_id = $2", b.ID, v).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserID)
+					if err != nil {
+						stmt, _ := bm.DB.Prepare("INSERT INTO masters(bot_id, user_id) VALUES($1, $2)")
+						stmt.Exec(b.ID, v)
+					}
+				}
 			}
 		}
 
@@ -356,10 +296,12 @@ func (bm *BotMaid) startBot(section string) {
 			}
 
 			if !bm.Conf.Get("Test.Test").(bool) || (b.IsTestChat(*u.Chat) && b.BeAt(&u)) {
+				u.Message.Args = SplitCommand(u.Message.Text)
+
 				logText := u.Message.Text
 
 				if u.User != nil {
-					logText = u.User.NickName + "(@" + u.User.UserName + "):" + logText
+					logText = u.User.NickName + ": " + logText
 				}
 
 				if u.Chat != nil && u.Chat.Title != "" {
@@ -375,8 +317,10 @@ func (bm *BotMaid) startBot(section string) {
 					if !b.IsTestChat(*u.Chat) && c.Test {
 						continue
 					}
-					if c.Do(&u, bm.Bots[section]) {
-						break
+					if c.Check == nil || c.Check(&u, bm.Bots[section]) {
+						if c.Do(&u, bm.Bots[section]) {
+							break
+						}
 					}
 				}
 			}

@@ -105,6 +105,12 @@ func (a *TelegramBotAPI) mapToUpdates(m []interface{}) ([]Update, error) {
 
 			if _, ok := m["text"]; ok {
 				update.Message.Text = m["text"].(string)
+				if _, ok := m["reply_to_message"]; ok {
+					r := m["reply_to_message"].(map[string]interface{})
+					if _, ok := r["from"]; ok {
+						update.Message.Text = fmt.Sprintf("tg://user?id=%v", int64(r["from"].(map[string]interface{})["id"].(float64))) + " " + update.Message.Text
+					}
+				}
 			}
 
 			if _, ok := m["sticker"]; ok {
@@ -169,8 +175,20 @@ func (a *TelegramBotAPI) GetUpdates(pc GetUpdatesConfig) (UpdateChannel, ErrorCh
 	return updates, errors
 }
 
-// Send sends an update and returns it back.
-func (a *TelegramBotAPI) Send(update Update) (Update, error) {
+// Push pushes an update and returns it back if existing.
+func (a *TelegramBotAPI) Push(update Update) (Update, error) {
+	if update.Type == "delete" {
+		_, err := a.API("deleteMessage", map[string]interface{}{
+			"chat_id":    update.Chat.ID,
+			"message_id": update.ID,
+		})
+		if err != nil {
+			return Update{}, fmt.Errorf("Delete message: %v", err)
+		}
+
+		return Update{}, nil
+	}
+
 	if update.Message.Image != "" && strings.HasSuffix(update.Message.Image, ".gif") {
 		method := fmt.Sprintf(telegramBotAPIEndpoint, a.Token, "sendAnimation")
 
@@ -376,17 +394,4 @@ func (a *TelegramBotAPI) Send(update Update) (Update, error) {
 	update.ID = int64(msg.(map[string]interface{})["message_id"].(float64))
 
 	return update, nil
-}
-
-// Delete deletes a specific update.
-func (a *TelegramBotAPI) Delete(update Update) error {
-	_, err := a.API("deleteMessage", map[string]interface{}{
-		"chat_id":    update.Chat.ID,
-		"message_id": update.ID,
-	})
-	if err != nil {
-		return fmt.Errorf("Delete message: %v", err)
-	}
-
-	return nil
 }

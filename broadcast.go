@@ -69,7 +69,7 @@ func (bm *BotMaid) Broadcast(tableName string, m *Message) {
 			continue
 		}
 
-		bm.Bots[v.BotID].API.Send(Update{
+		bm.Bots[v.BotID].API.Push(Update{
 			Message: m,
 			Chat: &Chat{
 				Type: v.ChatType,
