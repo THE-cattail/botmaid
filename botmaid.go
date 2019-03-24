@@ -240,13 +240,13 @@ func (bm *BotMaid) readBotConfig(section string) (Bot, error) {
 	}
 
 	if bm.Conf.Get(section+".Master") != nil {
-		if _, ok := bm.Conf.Get(section + ".Master").([]float64); ok {
-			for _, v := range bm.Conf.Get(section + ".Master").([]float64) {
+		if _, ok := bm.Conf.Get(section + ".Master").([]interface{}); ok {
+			for _, v := range bm.Conf.Get(section + ".Master").([]interface{}) {
 				theMaster := dbMaster{}
-				err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND user_id = $2", b.ID, v).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserID)
+				err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND user_id = $2", b.ID, v.(int64)).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserID)
 				if err != nil {
 					stmt, _ := bm.DB.Prepare("INSERT INTO masters(bot_id, user_id) VALUES($1, $2)")
-					stmt.Exec(b.ID, int64(v))
+					stmt.Exec(b.ID, v.(int64))
 				}
 			}
 		}
