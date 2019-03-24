@@ -184,19 +184,6 @@ func (bm *BotMaid) readBotConfig(section string) (Bot, error) {
 			}
 		}
 
-		if bm.Conf.Get(section+".Master") != nil {
-			if _, ok := bm.Conf.Get(section + ".Master").([]int64); ok {
-				for _, v := range bm.Conf.Get(section + ".Master").([]int64) {
-					theMaster := dbMaster{}
-					err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND user_id = $2", b.ID, v).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserID)
-					if err != nil {
-						stmt, _ := bm.DB.Prepare("INSERT INTO masters(bot_id, user_id) VALUES($1, $2)")
-						stmt.Exec(b.ID, v)
-					}
-				}
-			}
-		}
-
 		for {
 			m, err := q.API("get_login_info", map[string]interface{}{})
 			if err != nil {
@@ -250,6 +237,19 @@ func (bm *BotMaid) readBotConfig(section string) (Bot, error) {
 		b.API = t
 	} else {
 		return Bot{}, fmt.Errorf("Init botmaid: Unknown type of %v", section)
+	}
+
+	if bm.Conf.Get(section+".Master") != nil {
+		if _, ok := bm.Conf.Get(section + ".Master").([]float64); ok {
+			for _, v := range bm.Conf.Get(section + ".Master").([]float64) {
+				theMaster := dbMaster{}
+				err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND user_id = $2", b.ID, v).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserID)
+				if err != nil {
+					stmt, _ := bm.DB.Prepare("INSERT INTO masters(bot_id, user_id) VALUES($1, $2)")
+					stmt.Exec(b.ID, int64(v))
+				}
+			}
+		}
 	}
 
 	return b, nil
