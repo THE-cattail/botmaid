@@ -1,16 +1,19 @@
-// Package botmaid is a package includes more useful public functions for bots.
+// Package botmaid is a package for managing bots.
 package botmaid
 
 import (
-	"database/sql"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"time"
 
 	"github.com/catsworld/random"
 
+	"github.com/go-redis/redis"
 	"github.com/pelletier/go-toml"
 )
 
@@ -20,7 +23,7 @@ type BotMaid struct {
 
 	Conf *toml.Tree
 
-	DB *sql.DB
+	Redis *redis.Client
 
 	Commands []Command
 	Timers   []Timer
@@ -32,65 +35,9 @@ type BotMaid struct {
 	RespTime time.Time
 }
 
-func (bm *BotMaid) addMaster(u *Update, b *Bot) bool {
-	args := SplitCommand(u.Message.Text)
-	if b.IsCommand(u, "addmaster") && len(args) == 2 {
-		theMaster := dbMaster{}
-		err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND user_id = $2", b.ID, args[1]).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserID)
-		if err == nil {
-			b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterExisted"]), args[1]))
-			return true
-		}
-
-		stmt, _ := bm.DB.Prepare("INSERT INTO masters(bot_id, user_id) VALUES($1, $2)")
-		stmt.Exec(b.ID, args[1])
-		b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterAdded"]), args[1]))
-
-		return true
-	}
-
-	return false
-}
-
-func (bm *BotMaid) removeMaster(u *Update, b *Bot) bool {
-	args := SplitCommand(u.Message.Text)
-	if b.IsCommand(u, "rmmaster") && len(args) == 2 {
-		theMaster := dbMaster{}
-		err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND user_id = $2", b.ID, args[1]).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserID)
-		if err != nil {
-			b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterNotExisted"]), args[1]))
-			return true
-		}
-
-		stmt, _ := bm.DB.Prepare("DELETE FROM masters WHERE bot_id = $1 AND user_id = $2")
-		stmt.Exec(b.ID, args[1])
-		b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterRemoved"]), args[1]))
-
-		return true
-	}
-
-	return false
-}
-
-func (bm *BotMaid) switchTestChat(u *Update, b *Bot) bool {
-	args := SplitCommand(u.Message.Text)
-	if b.IsCommand(u, "test") && len(args) == 1 {
-		theTestChat := dbTestChat{}
-		err := bm.DB.QueryRow("SELECT * FROM testchats WHERE bot_id = $1 AND chat_type = $2 AND chat_id = $3", b.ID, u.Chat.Type, u.Chat.ID).Scan(&theTestChat.ID, &theTestChat.BotID, &theTestChat.ChatType, &theTestChat.ChatID)
-		if err != nil {
-			stmt, _ := bm.DB.Prepare("INSERT INTO testchats(bot_id, chat_type, chat_id) VALUES($1, $2, $3)")
-			stmt.Exec(b.ID, u.Chat.Type, u.Chat.ID)
-			b.Reply(u, random.String(bm.Words["testChatAdded"]))
-		} else {
-			stmt, _ := bm.DB.Prepare("DELETE FROM testchats WHERE bot_id = $1 AND chat_type = $2 AND chat_id = $3")
-			stmt.Exec(b.ID, u.Chat.Type, u.Chat.ID)
-			b.Reply(u, random.String(bm.Words["testChatRemoved"]))
-		}
-
-		return true
-	}
-
-	return false
+func (bm *BotMaid) status(u *Update, b *Bot) bool {
+	b.Reply(u, "√")
+	return true
 }
 
 func (bm *BotMaid) initCommand() {
@@ -103,56 +50,69 @@ func (bm *BotMaid) initCommand() {
 		Priority: -10000,
 	})
 	bm.AddCommand(Command{
-		Do:     bm.addMaster,
-		Names:  []string{"addmaster"},
-		Help:   " <@某人> - 将某人设为 Master",
-		Master: true,
+		Do: func(u *Update, b *Bot) bool {
+			f, _ := b.BotMaid.Redis.SIsMember("master_"+b.ID, u.User.ID).Result()
+			if f {
+				b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterExisted"]), u.Message.Args[1]))
+				return true
+			}
+
+			b.BotMaid.Redis.SAdd("master_"+b.ID, u.User.ID)
+			b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterAdded"]), u.Message.Args[1]))
+			return true
+		},
+		Names:      []string{"addmaster"},
+		ArgsMinLen: 2,
+		ArgsMaxLen: 2,
+		Help:       " <用户ID> - 将用户设为 Master",
+		Master:     true,
 	})
 	bm.AddCommand(Command{
-		Do:     bm.removeMaster,
-		Names:  []string{"rmmaster"},
-		Help:   " <@某人> - 取消某人的 Master 资格",
-		Master: true,
+		Do: func(u *Update, b *Bot) bool {
+			f, _ := b.BotMaid.Redis.SIsMember("master_"+b.ID, u.User.ID).Result()
+			if !f {
+				b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterNotExisted"]), u.Message.Args[1]))
+				return true
+			}
+
+			b.BotMaid.Redis.SRem("master_"+b.ID, u.User.ID)
+			b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterRemoved"]), u.Message.Args[1]))
+			return true
+		},
+		Names:      []string{"rmmaster"},
+		ArgsMinLen: 2,
+		ArgsMaxLen: 2,
+		Help:       " <用户ID> - 取消用户的 Master 资格",
+		Master:     true,
 	})
 	bm.AddCommand(Command{
-		Do:     bm.switchTestChat,
-		Names:  []string{"test"},
-		Help:   " - 切换本场景的测试开关",
-		Master: true,
+		Do: func(u *Update, b *Bot) bool {
+			f, _ := b.BotMaid.Redis.SIsMember("testchat_"+b.ID, u.Chat.ID).Result()
+			if f {
+				b.BotMaid.Redis.SRem("master_"+b.ID, u.Chat.ID)
+				b.Reply(u, random.String(bm.Words["testChatRemoved"]))
+			} else {
+				b.BotMaid.Redis.SAdd("master_"+b.ID, u.Chat.ID)
+				b.Reply(u, random.String(bm.Words["testChatAdded"]))
+			}
+			return true
+		},
+		Names:      []string{"test"},
+		ArgsMinLen: 1,
+		ArgsMaxLen: 1,
+		Help:       " - 切换本场景的测试开关",
+		Master:     true,
 	})
 	bm.AddCommand(Command{
-		Do:     bm.status,
-		Names:  []string{"status"},
-		Help:   " - 查看 Bot 状态",
-		Master: true,
+		Do:         bm.status,
+		Names:      []string{"status"},
+		ArgsMinLen: 1,
+		ArgsMaxLen: 1,
+		Help:       " - 查看 Bot 状态",
+		Master:     true,
 	})
 
 	sort.Stable(CommandSlice(bm.Commands))
-}
-
-func (bm *BotMaid) initDatabase() error {
-	stmt, err := bm.DB.Prepare(`CREATE TABLE masters (
-		id SERIAL primary key,
-		bot_id text,
-		user_id bigint not null
-	)`)
-	if err != nil {
-		return fmt.Errorf("Init botmaid database: %v", err)
-	}
-	stmt.Exec()
-
-	stmt, err = bm.DB.Prepare(`CREATE TABLE testchats (
-		id SERIAL primary key,
-		bot_id text,
-		chat_type text,
-		chat_id bigint not null
-	)`)
-	if err != nil {
-		return fmt.Errorf("Init botmaid database: %v", err)
-	}
-	stmt.Exec()
-
-	return nil
 }
 
 func (bm *BotMaid) readBotConfig(section string) (Bot, error) {
@@ -242,12 +202,7 @@ func (bm *BotMaid) readBotConfig(section string) (Bot, error) {
 	if bm.Conf.Get(section+".Master") != nil {
 		if _, ok := bm.Conf.Get(section + ".Master").([]interface{}); ok {
 			for _, v := range bm.Conf.Get(section + ".Master").([]interface{}) {
-				theMaster := dbMaster{}
-				err := bm.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND user_id = $2", b.ID, v.(int64)).Scan(&theMaster.ID, &theMaster.BotID, &theMaster.UserID)
-				if err != nil {
-					stmt, _ := bm.DB.Prepare("INSERT INTO masters(bot_id, user_id) VALUES($1, $2)")
-					stmt.Exec(b.ID, v.(int64))
-				}
+				bm.Redis.SAdd("master_"+b.ID, v.(int64))
 			}
 		}
 	}
@@ -317,10 +272,18 @@ func (bm *BotMaid) startBot(section string) {
 					if !b.IsTestChat(*u.Chat) && c.Test {
 						continue
 					}
-					if c.Check == nil || c.Check(&u, bm.Bots[section]) {
-						if c.Do(&u, bm.Bots[section]) {
-							break
-						}
+					if len(c.Names) != 0 && !b.IsCommand(&u, c.Names) {
+						continue
+					}
+					if c.ArgsMinLen != 0 && len(u.Message.Args) < c.ArgsMinLen {
+						continue
+					}
+					if c.ArgsMaxLen != 0 && len(u.Message.Args) > c.ArgsMaxLen {
+						continue
+					}
+
+					if c.Do(&u, bm.Bots[section]) {
+						break
 					}
 				}
 			}
@@ -378,12 +341,32 @@ func (bm *BotMaid) loadTimers() {
 
 // Start starts the BotMaid.
 func (bm *BotMaid) Start() error {
-	bm.initCommand()
-
-	err := bm.initDatabase()
+	rootDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		return fmt.Errorf("Init botmaid: %v", err)
+		return fmt.Errorf("Init botmaid: Get root directory: %v", err)
 	}
+
+	raw, err := ioutil.ReadFile(rootDir + "/config.toml")
+	if err != nil {
+		return fmt.Errorf("Init botmaid: Read config: %v", err)
+	}
+	bm.Conf, err = toml.Load(string(raw))
+	if err != nil {
+		return fmt.Errorf("Init botmaid: Read config: %v", err)
+	}
+
+	bm.Redis = redis.NewClient(&redis.Options{
+		Addr:     bm.Conf.Get("Redis.Address").(string),
+		Password: bm.Conf.Get("Redis.Password").(string),
+		DB:       bm.Conf.Get("Redis.Database").(int),
+	})
+
+	_, err = bm.Redis.Ping().Result()
+	if err != nil {
+		return fmt.Errorf("Init botmaid: Connect Redis: %v", err)
+	}
+
+	bm.initCommand()
 
 	err = bm.loadBots()
 	if err != nil {

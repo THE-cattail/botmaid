@@ -8,13 +8,13 @@ import (
 // Command is a func with priority value so that we can sort some Commands to
 // make them in a specific order.
 type Command struct {
-	Check    func(*Update, *Bot) bool
 	Do       func(*Update, *Bot) bool
 	Priority int
 
-	Menu, Help   string
-	Names        []string
-	Master, Test bool
+	Menu, Help             string
+	Names                  []string
+	ArgsMinLen, ArgsMaxLen int
+	Master, Test           bool
 }
 
 // CommandSlice is a slice of Command that could be sort.
@@ -98,7 +98,7 @@ func (b *Bot) extractCommand(u *Update) string {
 }
 
 // IsCommand checks if a message is a specific command.
-func (b *Bot) IsCommand(u *Update, c ...string) bool {
+func (b *Bot) IsCommand(u *Update, c []string) bool {
 	s := b.extractCommand(u)
 
 	if len(c) == 0 && s != "" {

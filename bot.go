@@ -17,37 +17,16 @@ type Bot struct {
 	BotMaid *BotMaid
 }
 
-type dbMaster struct {
-	ID     int64
-	BotID  string
-	UserID int64
-}
-
-type dbTestChat struct {
-	ID       int64
-	BotID    string
-	ChatType string
-	ChatID   int64
-}
-
 // IsMaster checks if a user is master of the bot.
 func (b *Bot) IsMaster(u User) bool {
-	m := dbMaster{}
-	err := b.BotMaid.DB.QueryRow("SELECT * FROM masters WHERE bot_id = $1 AND user_id = $2", b.ID, u.ID).Scan(&m.ID, &m.BotID, &m.UserID)
-	if err != nil {
-		return false
-	}
-	return true
+	f, _ := b.BotMaid.Redis.SIsMember("master_"+b.ID, u.ID).Result()
+	return f
 }
 
 // IsTestChat checks if a chat is a test chat of the bot.
 func (b *Bot) IsTestChat(p Chat) bool {
-	t := dbTestChat{}
-	err := b.BotMaid.DB.QueryRow("SELECT * FROM testchats WHERE bot_id = $1 AND chat_type = $2 AND chat_id = $3", b.ID, p.Type, p.ID).Scan(&t.ID, &t.BotID, &t.ChatType, &t.ChatID)
-	if err != nil {
-		return false
-	}
-	return true
+	f, _ := b.BotMaid.Redis.SIsMember("testchat_"+b.ID, p.ID).Result()
+	return f
 }
 
 // Platform returns a string showing the platform of the bot.

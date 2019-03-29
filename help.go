@@ -75,7 +75,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, b *Bot, showUndef bool) {
 
 func (bm *BotMaid) help(u *Update, b *Bot) bool {
 	args := SplitCommand(u.Message.Text)
-	if b.IsCommand(u, "help") && len(args) == 1 {
+	if b.IsCommand(u, []string{"help"}) && len(args) == 1 {
 		s := fmt.Sprintf(random.String(bm.Words["selfIntro"]), u.User.NickName) + "\n\n"
 
 		menus := []string{}
@@ -121,9 +121,9 @@ func (bm *BotMaid) help(u *Update, b *Bot) bool {
 	}
 
 	hc := ""
-	if b.IsCommand(u, "help") && len(args) == 2 {
+	if b.IsCommand(u, []string{"help"}) && len(args) == 2 {
 		hc = args[1]
-	} else if b.IsCommand(u) && len(args) == 2 && In(args[1], "help") {
+	} else if b.IsCommand(u, []string{}) && len(args) == 2 && In(args[1], "help") {
 		hc = b.extractCommand(u)
 	} else {
 		return false
@@ -134,7 +134,7 @@ func (bm *BotMaid) help(u *Update, b *Bot) bool {
 }
 
 func (bm *BotMaid) help2(u *Update, b *Bot) bool {
-	if b.IsCommand(u) {
+	if b.IsCommand(u, []string{}) {
 		hc := b.extractCommand(u)
 
 		bm.pushHelp(hc, u, b, false)

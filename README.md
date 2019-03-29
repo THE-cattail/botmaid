@@ -1,6 +1,6 @@
 # botmaid
 
-This repository holds a package includes more useful public functions for bots.
+This repository holds a package for managing bots.
 
 ## Download / Install
 
