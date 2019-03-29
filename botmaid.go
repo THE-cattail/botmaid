@@ -358,7 +358,7 @@ func (bm *BotMaid) Start() error {
 	bm.Redis = redis.NewClient(&redis.Options{
 		Addr:     bm.Conf.Get("Redis.Address").(string),
 		Password: bm.Conf.Get("Redis.Password").(string),
-		DB:       bm.Conf.Get("Redis.Database").(int),
+		DB:       int(bm.Conf.Get("Redis.Database").(int64)),
 	})
 
 	_, err = bm.Redis.Ping().Result()
