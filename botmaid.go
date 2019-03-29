@@ -51,7 +51,7 @@ func (bm *BotMaid) initCommand() {
 	})
 	bm.AddCommand(Command{
 		Do: func(u *Update, b *Bot) bool {
-			f, _ := b.BotMaid.Redis.SIsMember("master_"+b.ID, u.User.ID).Result()
+			f := b.BotMaid.Redis.SIsMember("master_"+b.ID, u.User.ID).Val()
 			if f {
 				b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterExisted"]), u.Message.Args[1]))
 				return true
@@ -69,7 +69,7 @@ func (bm *BotMaid) initCommand() {
 	})
 	bm.AddCommand(Command{
 		Do: func(u *Update, b *Bot) bool {
-			f, _ := b.BotMaid.Redis.SIsMember("master_"+b.ID, u.User.ID).Result()
+			f := b.BotMaid.Redis.SIsMember("master_"+b.ID, u.User.ID).Val()
 			if !f {
 				b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterNotExisted"]), u.Message.Args[1]))
 				return true
@@ -87,12 +87,12 @@ func (bm *BotMaid) initCommand() {
 	})
 	bm.AddCommand(Command{
 		Do: func(u *Update, b *Bot) bool {
-			f, _ := b.BotMaid.Redis.SIsMember("testchat_"+b.ID, u.Chat.ID).Result()
+			f := b.BotMaid.Redis.SIsMember("testchat_"+b.ID, u.Chat.ID).Val()
 			if f {
-				b.BotMaid.Redis.SRem("master_"+b.ID, u.Chat.ID)
+				b.BotMaid.Redis.SRem("testchat_"+b.ID, u.Chat.ID)
 				b.Reply(u, random.String(bm.Words["testChatRemoved"]))
 			} else {
-				b.BotMaid.Redis.SAdd("master_"+b.ID, u.Chat.ID)
+				b.BotMaid.Redis.SAdd("testchat_"+b.ID, u.Chat.ID)
 				b.Reply(u, random.String(bm.Words["testChatAdded"]))
 			}
 			return true
@@ -361,7 +361,7 @@ func (bm *BotMaid) Start() error {
 		DB:       int(bm.Conf.Get("Redis.Database").(int64)),
 	})
 
-	_, err = bm.Redis.Ping().Result()
+	err = bm.Redis.Ping().Err()
 	if err != nil {
 		return fmt.Errorf("Init botmaid: Connect Redis: %v", err)
 	}

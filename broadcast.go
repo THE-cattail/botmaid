@@ -7,7 +7,7 @@ import (
 
 // Broadcast sends an update to all chats in the table.
 func (bm *BotMaid) Broadcast(key string, m *Message) {
-	cs, _ := bm.Redis.SMembers("broadcast_" + key).Result()
+	cs := bm.Redis.SMembers("broadcast_" + key).Val()
 
 	for _, v := range cs {
 		args := strings.Split(v, "|")
@@ -30,7 +30,7 @@ func (bm *BotMaid) Broadcast(key string, m *Message) {
 
 // SwitchBroadcast switches the broadcast on/off of a chat.
 func (bm *BotMaid) SwitchBroadcast(key string, c *Chat, b *Bot) {
-	f, _ := bm.Redis.SIsMember("broadcast_"+key, b.ID+"|"+c.Type+"|"+strconv.FormatInt(c.ID, 10)).Result()
+	f := bm.Redis.SIsMember("broadcast_"+key, b.ID+"|"+c.Type+"|"+strconv.FormatInt(c.ID, 10)).Val()
 	if f {
 		bm.Redis.SRem("broadcast_"+key, b.ID+"|"+c.Type+"|"+strconv.FormatInt(c.ID, 10))
 	} else {

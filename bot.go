@@ -19,13 +19,13 @@ type Bot struct {
 
 // IsMaster checks if a user is master of the bot.
 func (b *Bot) IsMaster(u User) bool {
-	f, _ := b.BotMaid.Redis.SIsMember("master_"+b.ID, u.ID).Result()
+	f := b.BotMaid.Redis.SIsMember("master_"+b.ID, u.ID).Val()
 	return f
 }
 
 // IsTestChat checks if a chat is a test chat of the bot.
 func (b *Bot) IsTestChat(p Chat) bool {
-	f, _ := b.BotMaid.Redis.SIsMember("testchat_"+b.ID, p.ID).Result()
+	f := b.BotMaid.Redis.SIsMember("testchat_"+b.ID, p.ID).Val()
 	return f
 }
 
