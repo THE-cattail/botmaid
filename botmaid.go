@@ -36,7 +36,8 @@ type BotMaid struct {
 }
 
 func (bm *BotMaid) status(u *Update, b *Bot) bool {
-	b.Reply(u, "√")
+	s := "版本号：" + bm.Conf.Get("Info.Version").(string)
+	b.Reply(u, s)
 	return true
 }
 
