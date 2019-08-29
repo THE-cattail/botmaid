@@ -234,7 +234,9 @@ func (bm *BotMaid) startBot(section string) {
 		}
 	}()
 
-	log.Printf("%s (%s) has been loaded. Begin to get updates.\n", b.Self.NickName, b.Platform())
+	if bm.Conf.Get("Log.Log").(bool) {
+		log.Printf("%s (%s) has been loaded. Begin to get updates.\n", b.Self.NickName, b.Platform())
+	}
 
 	for u := range updates {
 		go func(u Update) {
@@ -266,7 +268,9 @@ func (bm *BotMaid) startBot(section string) {
 					logText = "[" + u.Chat.Title + "]" + logText
 				}
 
-				log.Println(logText)
+				if bm.Conf.Get("Log.Log").(bool) {
+					log.Println(logText)
+				}
 
 				for _, c := range bm.Commands {
 					if !b.IsMaster(*u.User) && c.Master {
