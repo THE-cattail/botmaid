@@ -204,41 +204,39 @@ func (bm *BotMaid) startBot() {
 						return
 					}
 
-					if b.BeAt(&u) {
-						args, err := shlex.Split(u.Message.Text)
-						if err == nil {
-							u.Message.Args = args
+					args, err := shlex.Split(u.Message.Text)
+					if err == nil {
+						u.Message.Args = args
+					}
+					u.Message.Command = b.extractCommand(&u)
+
+					if bm.Conf.Log {
+						logText := u.Message.Text
+						if u.User != nil {
+							logText = u.User.NickName + ": " + logText
 						}
-						u.Message.Command = b.extractCommand(&u)
+						if u.Chat != nil && u.Chat.Title != "" {
+							logText = "[" + u.Chat.Title + "]" + logText
+						}
+						log.Println(logText)
+					}
 
-						if bm.Conf.Log {
-							logText := u.Message.Text
-							if u.User != nil {
-								logText = u.User.NickName + ": " + logText
-							}
-							if u.Chat != nil && u.Chat.Title != "" {
-								logText = "[" + u.Chat.Title + "]" + logText
-							}
-							log.Println(logText)
+					for _, c := range bm.Commands {
+						if !b.IsMaster(u.User) && c.Master {
+							continue
+						}
+						if len(c.Names) != 0 && !b.IsCommand(&u, c.Names) {
+							continue
+						}
+						if c.ArgsMinLen != 0 && len(u.Message.Args) < c.ArgsMinLen {
+							continue
+						}
+						if c.ArgsMaxLen != 0 && len(u.Message.Args) > c.ArgsMaxLen {
+							continue
 						}
 
-						for _, c := range bm.Commands {
-							if !b.IsMaster(u.User) && c.Master {
-								continue
-							}
-							if len(c.Names) != 0 && !b.IsCommand(&u, c.Names) {
-								continue
-							}
-							if c.ArgsMinLen != 0 && len(u.Message.Args) < c.ArgsMinLen {
-								continue
-							}
-							if c.ArgsMaxLen != 0 && len(u.Message.Args) > c.ArgsMaxLen {
-								continue
-							}
-
-							if c.Do(&u, b) {
-								break
-							}
+						if c.Do(&u, b) {
+							break
 						}
 					}
 				}(u)
