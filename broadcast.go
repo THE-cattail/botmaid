@@ -14,9 +14,6 @@ func (bm *BotMaid) Broadcast(key string, m *Message) {
 		botID := args[0]
 		chatType := args[1]
 		chatID, _ := strconv.ParseInt(args[2], 10, 0)
-		if _, ok := bm.Bots[botID]; !ok {
-			continue
-		}
 
 		bm.Bots[botID].API.Push(Update{
 			Message: m,

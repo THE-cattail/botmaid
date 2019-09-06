@@ -12,29 +12,28 @@ import (
 	"time"
 )
 
-// CoolqHTTPAPI is a struct stores some basic information of the Coolq HTTP
-// API. Please search in Coolq HTTP API document for details.
-type CoolqHTTPAPI struct {
+// APICqhttp is a struct stores some basic information of the CQHTTP. Please search in CQHTTP document for details.
+type APICqhttp struct {
 	AccessToken string
 	Secret      string
 	APIEndpoint string
 }
 
 var (
-	cqhttpRetDesc = map[int]string{
+	retDescCqhttp = map[int]string{
 		0:     "Succeeded",
 		1:     "Entered asynchronous execution",
 		100:   "Missing or invalid parameters",
-		102:   "Invalid return data of CoolQ",
+		102:   "Invalid return data of CQHTTP",
 		103:   "Operation failed",
-		104:   "Provided invalidation certificate from Coolq",
+		104:   "Provided invalidation certificate from CQHTTP",
 		201:   "Worker thread pool is not properly initialized",
 		10100: "Terminated by other request because of conflict",
 	}
 )
 
-// API returns the body of an HTTP response to the Coolq HTTP API.
-func (a *CoolqHTTPAPI) API(end string, m map[string]interface{}) (interface{}, error) {
+// API returns the body of an HTTP response to the CQHTTP.
+func (a *APICqhttp) API(end string, m map[string]interface{}) (interface{}, error) {
 	url := fmt.Sprintf(a.APIEndpoint, end, a.AccessToken)
 
 	j, err := json.Marshal(m)
@@ -66,7 +65,7 @@ func (a *CoolqHTTPAPI) API(end string, m map[string]interface{}) (interface{}, e
 	}
 
 	if ret["status"].(string) == "failed" {
-		if s, ok := cqhttpRetDesc[int(ret["retcode"].(float64))]; ok {
+		if s, ok := retDescCqhttp[int(ret["retcode"].(float64))]; ok {
 			return nil, fmt.Errorf("API %s: %v", end, s)
 		}
 		return nil, fmt.Errorf("API %s: %v", end, ret["retcode"].(float64))
@@ -75,7 +74,7 @@ func (a *CoolqHTTPAPI) API(end string, m map[string]interface{}) (interface{}, e
 	return ret["data"], nil
 }
 
-func (a *CoolqHTTPAPI) mapToUpdates(m []interface{}) ([]Update, error) {
+func (a *APICqhttp) mapToUpdates(m []interface{}) ([]Update, error) {
 	us := []Update{}
 	for _, v := range m {
 		e := v.(map[string]interface{})
@@ -148,7 +147,7 @@ func (a *CoolqHTTPAPI) mapToUpdates(m []interface{}) ([]Update, error) {
 }
 
 // GetUpdates gets updates and errors into the channels with a given config.
-func (a *CoolqHTTPAPI) GetUpdates(pc GetUpdatesConfig) (UpdateChannel, ErrorChannel) {
+func (a *APICqhttp) GetUpdates(pc GetUpdatesConfig) (UpdateChannel, ErrorChannel) {
 	updates := make(chan Update)
 	errors := make(chan error)
 
@@ -179,7 +178,7 @@ func (a *CoolqHTTPAPI) GetUpdates(pc GetUpdatesConfig) (UpdateChannel, ErrorChan
 }
 
 // Push pushes an update and returns it back if existing.
-func (a *CoolqHTTPAPI) Push(update Update) (Update, error) {
+func (a *APICqhttp) Push(update Update) (Update, error) {
 	if update.Type == "delete" {
 		_, err := a.API("delete_msg", map[string]interface{}{
 			"message_id": update.ID,

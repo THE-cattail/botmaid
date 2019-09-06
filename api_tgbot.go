@@ -13,20 +13,19 @@ import (
 	"time"
 )
 
-// TelegramBotAPI is a struct stores some basic information of the Telegram Bot
-// API. Please search in official API document for details.
-type TelegramBotAPI struct {
+// APITelegramBot is a struct stores some basic information of the Telegram Bot API. Please search in official API document for details.
+type APITelegramBot struct {
 	Token  string
 	Offset int64
 }
 
 const (
-	telegramBotAPIEndpoint = "https://api.telegram.org/bot%s/%s"
+	endPointAPITelegramBot = "https://api.telegram.org/bot%s/%s"
 )
 
 // API returns the body of an HTTP response to the Telegram Bot API.
-func (a *TelegramBotAPI) API(end string, m map[string]interface{}) (interface{}, error) {
-	url := fmt.Sprintf(telegramBotAPIEndpoint, a.Token, end)
+func (a *APITelegramBot) API(end string, m map[string]interface{}) (interface{}, error) {
+	url := fmt.Sprintf(endPointAPITelegramBot, a.Token, end)
 
 	j, err := json.Marshal(m)
 
@@ -63,7 +62,7 @@ func (a *TelegramBotAPI) API(end string, m map[string]interface{}) (interface{},
 	return ret["result"], nil
 }
 
-func (a *TelegramBotAPI) mapToUpdates(m []interface{}) ([]Update, error) {
+func (a *APITelegramBot) mapToUpdates(m []interface{}) ([]Update, error) {
 	us := []Update{}
 	for _, v := range m {
 		e := v.(map[string]interface{})
@@ -147,7 +146,7 @@ func (a *TelegramBotAPI) mapToUpdates(m []interface{}) ([]Update, error) {
 }
 
 // GetUpdates gets updates and errors into the channels with a given config.
-func (a *TelegramBotAPI) GetUpdates(pc GetUpdatesConfig) (UpdateChannel, ErrorChannel) {
+func (a *APITelegramBot) GetUpdates(pc GetUpdatesConfig) (UpdateChannel, ErrorChannel) {
 	updates := make(chan Update)
 	errors := make(chan error)
 
@@ -179,7 +178,7 @@ func (a *TelegramBotAPI) GetUpdates(pc GetUpdatesConfig) (UpdateChannel, ErrorCh
 }
 
 // Push pushes an update and returns it back if existing.
-func (a *TelegramBotAPI) Push(update Update) (Update, error) {
+func (a *APITelegramBot) Push(update Update) (Update, error) {
 	if update.Type == "delete" {
 		_, err := a.API("deleteMessage", map[string]interface{}{
 			"chat_id":    update.Chat.ID,
@@ -193,7 +192,7 @@ func (a *TelegramBotAPI) Push(update Update) (Update, error) {
 	}
 
 	if update.Message.Image != "" && strings.HasSuffix(update.Message.Image, ".gif") {
-		method := fmt.Sprintf(telegramBotAPIEndpoint, a.Token, "sendAnimation")
+		method := fmt.Sprintf(endPointAPITelegramBot, a.Token, "sendAnimation")
 
 		buf := new(bytes.Buffer)
 		w := multipart.NewWriter(buf)
@@ -255,7 +254,7 @@ func (a *TelegramBotAPI) Push(update Update) (Update, error) {
 	}
 
 	if update.Message.Image != "" {
-		method := fmt.Sprintf(telegramBotAPIEndpoint, a.Token, "sendPhoto")
+		method := fmt.Sprintf(endPointAPITelegramBot, a.Token, "sendPhoto")
 
 		buf := new(bytes.Buffer)
 		w := multipart.NewWriter(buf)
@@ -321,7 +320,7 @@ func (a *TelegramBotAPI) Push(update Update) (Update, error) {
 	}
 
 	if update.Message.Audio != "" {
-		method := fmt.Sprintf(telegramBotAPIEndpoint, a.Token, "sendVoice")
+		method := fmt.Sprintf(endPointAPITelegramBot, a.Token, "sendVoice")
 
 		buf := new(bytes.Buffer)
 		w := multipart.NewWriter(buf)

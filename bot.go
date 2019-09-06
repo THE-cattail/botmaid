@@ -8,33 +8,23 @@ import (
 
 // Bot includes some information of a bot.
 type Bot struct {
-	ID string
-
-	API API
-
-	Self *User
-
+	ID      string
+	API     API
+	Self    *User
 	BotMaid *BotMaid
 }
 
 // IsMaster checks if a user is master of the bot.
-func (b *Bot) IsMaster(u User) bool {
-	f := b.BotMaid.Redis.SIsMember("master_"+b.ID, u.ID).Val()
-	return f
-}
-
-// IsTestChat checks if a chat is a test chat of the bot.
-func (b *Bot) IsTestChat(p Chat) bool {
-	f := b.BotMaid.Redis.SIsMember("testchat_"+b.ID, p.ID).Val()
-	return f
+func (b *Bot) IsMaster(u *User) bool {
+	return b.BotMaid.Redis.SIsMember("master_"+b.ID, u.ID).Val()
 }
 
 // Platform returns a string showing the platform of the bot.
 func (b *Bot) Platform() string {
 	switch b.API.(type) {
-	case *CoolqHTTPAPI:
+	case *APICqhttp:
 		return "QQ"
-	case *TelegramBotAPI:
+	case *APITelegramBot:
 		return "Telegram"
 	}
 
@@ -44,10 +34,10 @@ func (b *Bot) Platform() string {
 // At returns a string to mention someone in a message.
 func (b *Bot) At(u *User) []string {
 	switch b.API.(type) {
-	case *CoolqHTTPAPI:
-		return []string{fmt.Sprintf("[CQ:at,qq=%v]", u.ID), fmt.Sprintf("@%s", u.NickName)}
-	case *TelegramBotAPI:
-		return []string{fmt.Sprintf("tg://user?id=%v", u.ID), fmt.Sprintf("@%s", u.UserName)}
+	case *APICqhttp:
+		return []string{fmt.Sprintf("[CQ:at,qq=%v]", u.ID), fmt.Sprintf("@%v", u.NickName)}
+	case *APITelegramBot:
+		return []string{fmt.Sprintf("tg://user?id=%v", u.ID), fmt.Sprintf("@%v", u.UserName)}
 	}
 
 	return []string{fmt.Sprintf("@%v", u.ID)}
@@ -56,12 +46,12 @@ func (b *Bot) At(u *User) []string {
 // BeAt checks if a message of an update is mentioning the bot.
 func (b *Bot) BeAt(u *Update) bool {
 	switch b.API.(type) {
-	case *CoolqHTTPAPI:
-		if (strings.Contains(u.Message.Text, fmt.Sprintf("[CQ:at,qq=%v]", b.Self.ID)) || strings.Contains(u.Message.Text, fmt.Sprintf("@%s", b.Self.NickName))) && b.extractCommand(u) == "" {
+	case *APICqhttp:
+		if (strings.Contains(u.Message.Text, fmt.Sprintf("[CQ:at,qq=%v]", b.Self.ID)) || strings.Contains(u.Message.Text, fmt.Sprintf("@%v", b.Self.NickName))) && b.extractCommand(u) == "" {
 			return true
 		}
-	case *TelegramBotAPI:
-		if strings.Contains(u.Message.Text, fmt.Sprintf("@%s", b.Self.UserName)) && b.extractCommand(u) == "" {
+	case *APITelegramBot:
+		if strings.Contains(u.Message.Text, fmt.Sprintf("@%v", b.Self.UserName)) && b.extractCommand(u) == "" {
 			return true
 		}
 	}

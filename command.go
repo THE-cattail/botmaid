@@ -1,20 +1,17 @@
 package botmaid
 
 import (
-	"regexp"
 	"strings"
 )
 
-// Command is a func with priority value so that we can sort some Commands to
-// make them in a specific order.
+// Command is a func with priority value so that we can sort some Commands to make them in a specific order.
 type Command struct {
-	Do       func(*Update, *Bot) bool
-	Priority int
-
+	Do                     func(*Update, *Bot) bool
+	Priority               int
 	Menu, Help             string
 	Names                  []string
 	ArgsMinLen, ArgsMaxLen int
-	Master, Test           bool
+	Master                 bool
 }
 
 // CommandSlice is a slice of Command that could be sort.
@@ -40,56 +37,22 @@ func (bm *BotMaid) AddCommand(c Command) {
 	bm.Commands = append(bm.Commands, c)
 }
 
-// SplitCommand splits a string into a slice of string.
-func SplitCommand(c string) []string {
-	var a []string
-	p := `("[^"]+")|([^"\s]+)`
-	r := regexp.MustCompile(p).FindAllString(c, -1)
-	for _, v := range r {
-		if len(v) > 1 {
-			if (v[0] == '"' && v[len(v)-1] == '"') ||
-				(v[0] == '\'' && v[len(v)-1] == '\'') ||
-				(v[0] == '`' && v[len(v)-1] == '`') {
-				v = v[1 : len(v)-1]
-			}
-		}
-		if v != "" {
-			a = append(a, v)
-		}
-	}
-	return a
-}
-
-// GetArgument returns a slice with a command and an argument.
-func GetArgument(c string) []string {
-	args := SplitCommand(c)
-
-	t := strings.Index(c, args[0]) + len(args[0]) + 1
-
-	ret := ""
-	if t < len(c) {
-		ret = c[t:]
-	}
-	return []string{args[0], ret}
-}
-
 func (b *Bot) extractCommand(u *Update) string {
-	args := SplitCommand(u.Message.Text)
-	if len(args) == 0 {
+	if len(u.Message.Args) == 0 {
 		return ""
 	}
-	s := args[0]
+	s := u.Message.Args[0]
 	for _, v := range b.At(b.Self) {
-		if len(args[0])-len(v) > 0 && strings.LastIndex(args[0], v) == len(args[0])-len(v) {
-			s = args[0][:len(args[0])-len(v)]
+		if len(u.Message.Args[0])-len(v) > 0 && strings.LastIndex(u.Message.Args[0], v) == len(u.Message.Args[0])-len(v) {
+			s = u.Message.Args[0][:len(u.Message.Args[0])-len(v)]
 			break
 		}
 	}
-	if strings.Index(s, "/") == 0 {
+	if strings.HasPrefix(s, "/") {
 		s = strings.Replace(s, "/", "", 1)
-	} else if strings.Index(s, ":") == 0 {
+	} else if strings.HasPrefix(s, ":") {
 		s = strings.Replace(s, ":", "", 1)
-	} else if strings.Index(s, "：") == 0 {
+	} else if strings.HasPrefix(s, "：") {
 		s = strings.Replace(s, "：", "", 1)
 	} else {
 		return ""
@@ -99,14 +62,12 @@ func (b *Bot) extractCommand(u *Update) string {
 
 // IsCommand checks if a message is a specific command.
 func (b *Bot) IsCommand(u *Update, c []string) bool {
-	s := b.extractCommand(u)
-
-	if len(c) == 0 && s != "" {
+	if len(c) == 0 && u.Message.Command != "" {
 		return true
 	}
 
 	for _, v := range c {
-		if s == v {
+		if u.Message.Command == v {
 			return true
 		}
 	}

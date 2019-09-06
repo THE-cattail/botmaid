@@ -16,16 +16,11 @@ type API interface {
 
 // Update is a struct for an update of APIs.
 type Update struct {
-	ID int64
-
-	Type string
-
-	Time time.Time
-
-	Chat *Chat
-
-	User *User
-
+	ID      int64
+	Type    string
+	Time    time.Time
+	Chat    *Chat
+	User    *User
 	Message *Message
 }
 
@@ -48,21 +43,18 @@ type GetUpdatesConfig struct {
 
 // Message is a struct for a message of an update.
 type Message struct {
-	ID int64
-
-	Text  string
-	Image string
-	Audio string
-
-	Args []string
+	ID      int64
+	Text    string
+	Image   string
+	Audio   string
+	Args    []string
+	Command string
 }
 
 // Chat is a struct for a chat.
 type Chat struct {
-	ID int64
-
-	Type string
-
+	ID    int64
+	Type  string
 	Title string
 }
 
@@ -70,6 +62,5 @@ type Chat struct {
 type User struct {
 	ID       int64
 	UserName string
-
 	NickName string
 }

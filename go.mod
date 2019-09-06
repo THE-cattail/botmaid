@@ -1,10 +1,10 @@
 module github.com/catsworld/botmaid
 
+go 1.13
+
 require (
-	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/catsworld/random v1.1.0
-	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-redis/redis v6.15.2+incompatible
-	github.com/pelletier/go-toml v1.2.0
-	gopkg.in/yaml.v2 v2.2.2 // indirect
+	github.com/go-redis/redis v6.15.5+incompatible
+	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf
+	github.com/pelletier/go-toml v1.4.0
 )

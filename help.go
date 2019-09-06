@@ -19,10 +19,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, b *Bot, showUndef bool) {
 			s := ""
 
 			for _, v := range bm.Commands {
-				if v.Master && !b.IsMaster(*u.User) {
-					continue
-				}
-				if v.Test && !b.IsTestChat(*u.Chat) {
+				if v.Master && !b.IsMaster(u.User) {
 					continue
 				}
 				if v.Menu == hc {
@@ -42,10 +39,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, b *Bot, showUndef bool) {
 	s := ""
 
 	for _, c := range bm.Commands {
-		if c.Master && !b.IsMaster(*u.User) {
-			continue
-		}
-		if c.Test && !b.IsTestChat(*u.Chat) {
+		if c.Master && !b.IsMaster(u.User) {
 			continue
 		}
 		for _, n := range c.Names {
@@ -74,8 +68,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, b *Bot, showUndef bool) {
 }
 
 func (bm *BotMaid) help(u *Update, b *Bot) bool {
-	args := SplitCommand(u.Message.Text)
-	if b.IsCommand(u, []string{"help"}) && len(args) == 1 {
+	if b.IsCommand(u, []string{"help"}) && len(u.Message.Args) == 1 {
 		s := fmt.Sprintf(random.String(bm.Words["selfIntro"]), u.User.NickName) + "\n\n"
 
 		menus := []string{}
@@ -90,10 +83,7 @@ func (bm *BotMaid) help(u *Update, b *Bot) bool {
 			f := false
 
 			for _, c := range bm.Commands {
-				if c.Master && !b.IsMaster(*u.User) {
-					continue
-				}
-				if c.Test && !b.IsTestChat(*u.Chat) {
+				if c.Master && !b.IsMaster(u.User) {
 					continue
 				}
 				if c.Menu == k {
@@ -121,9 +111,9 @@ func (bm *BotMaid) help(u *Update, b *Bot) bool {
 	}
 
 	hc := ""
-	if b.IsCommand(u, []string{"help"}) && len(args) == 2 {
-		hc = args[1]
-	} else if b.IsCommand(u, []string{}) && len(args) == 2 && In(args[1], "help") {
+	if b.IsCommand(u, []string{"help"}) && len(u.Message.Args) == 2 {
+		hc = u.Message.Args[1]
+	} else if b.IsCommand(u, []string{}) && len(u.Message.Args) == 2 && In(u.Message.Args[1], "help") {
 		hc = b.extractCommand(u)
 	} else {
 		return false
