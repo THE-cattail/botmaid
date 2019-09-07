@@ -35,24 +35,26 @@ func (cs CommandSlice) Less(i, j int) bool {
 // AddCommand adds a command into the []Command.
 func (bm *BotMaid) AddCommand(c Command) {
 	bm.Commands = append(bm.Commands, c)
-	for i := range bm.HelpMenus {
-		if bm.HelpMenus[i].Menu == c.Menu {
-			if c.MenuText != "" {
-				bm.HelpMenus[i].Help = c.MenuText
-			}
-			for _, v := range c.Names {
-				if !In(v, bm.HelpMenus[i].Names) {
-					bm.HelpMenus[i].Names = append(bm.HelpMenus[i].Names, v)
+	if c.Menu != "" {
+		for i := range bm.HelpMenus {
+			if bm.HelpMenus[i].Menu == c.Menu {
+				if c.MenuText != "" {
+					bm.HelpMenus[i].Help = c.MenuText
 				}
+				for _, v := range c.Names {
+					if !In(v, bm.HelpMenus[i].Names) {
+						bm.HelpMenus[i].Names = append(bm.HelpMenus[i].Names, v)
+					}
+				}
+				return
 			}
-			return
 		}
+		bm.HelpMenus = append(bm.HelpMenus, HelpMenu{
+			Menu:  c.Menu,
+			Help:  c.MenuText,
+			Names: c.Names,
+		})
 	}
-	bm.HelpMenus = append(bm.HelpMenus, HelpMenu{
-		Menu:  c.Menu,
-		Help:  c.MenuText,
-		Names: c.Names,
-	})
 }
 
 func (b *Bot) extractCommand(u *Update) string {

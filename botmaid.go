@@ -323,6 +323,16 @@ func (bm *BotMaid) Start() error {
 
 // In checks if the element is in the slice.
 func In(a interface{}, s ...interface{}) bool {
+	if len(s) == 1 {
+		if _, ok := s[0].([]string); ok {
+			for _, v := range s[0].([]string) {
+				if v == a {
+					return true
+				}
+			}
+		}
+		return false
+	}
 	for _, v := range s {
 		if v == a {
 			return true
