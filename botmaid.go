@@ -265,8 +265,12 @@ func New(configFile string) (*BotMaid, error) {
 		bm.Conf.Log = f
 	}
 
-	if ss, ok := conf.Get("Command.Prefix").([]string); ok {
-		bm.Conf.CommandPrefix = ss
+	if ss, ok := conf.Get("Command.Prefix").([]interface{}); ok {
+		for _, v := range ss {
+			if s, ok := v.(string); ok {
+				bm.Conf.CommandPrefix = append(bm.Conf.CommandPrefix, s)
+			}
+		}
 	} else {
 		bm.Conf.CommandPrefix = []string{"/"}
 	}
