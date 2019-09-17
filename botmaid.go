@@ -350,6 +350,16 @@ func In(a interface{}, s ...interface{}) bool {
 
 // ListToString convert the list to a string.
 func ListToString(list []string, format string, separator string, andWord string) string {
-	ret := ""
+	if len(list) < 1 {
+		return ""
+	}
+	if len(list) == 1 {
+		return fmt.Sprintf(format, list[0])
+	}
+	ret := fmt.Sprintf(format, list[0])
+	for i := 1; i < len(list)-1; i++ {
+		ret += separator + fmt.Sprintf(format, list[i])
+	}
+	ret += andWord + fmt.Sprintf(format, list[len(list)-1])
 	return ret
 }
