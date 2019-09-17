@@ -23,8 +23,9 @@ type botmaidRedisConfig struct {
 }
 
 type botMaidConfig struct {
-	Redis botmaidRedisConfig
-	Log   bool
+	Redis         botmaidRedisConfig
+	Log           bool
+	CommandPrefix []string
 }
 
 // BotMaid includes a slice of Bot and some methods to use them.
@@ -264,6 +265,12 @@ func New(configFile string) (*BotMaid, error) {
 		bm.Conf.Log = f
 	}
 
+	if ss, ok := conf.Get("Command.Prefix").([]string); ok {
+		bm.Conf.CommandPrefix = ss
+	} else {
+		bm.Conf.CommandPrefix = []string{"/"}
+	}
+
 	if conf.Has("Redis") {
 		bm.Conf.Redis.Address = "127.0.0.1"
 		if s, ok := conf.Get("Redis.Address").(string); ok {
@@ -339,4 +346,10 @@ func In(a interface{}, s ...interface{}) bool {
 		}
 	}
 	return false
+}
+
+// ListToString convert the list to a string.
+func ListToString(list []string, format string, separator string, andWord string) string {
+	ret := ""
+	return ret
 }

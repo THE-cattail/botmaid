@@ -68,13 +68,15 @@ func (b *Bot) extractCommand(u *Update) string {
 			break
 		}
 	}
-	if strings.HasPrefix(s, "/") {
-		s = strings.Replace(s, "/", "", 1)
-	} else if strings.HasPrefix(s, ":") {
-		s = strings.Replace(s, ":", "", 1)
-	} else if strings.HasPrefix(s, "：") {
-		s = strings.Replace(s, "：", "", 1)
-	} else {
+	f := false
+	for _, v := range b.BotMaid.Conf.CommandPrefix {
+		if strings.HasPrefix(s, v) {
+			s = strings.Replace(s, v, "", 1)
+			f = true
+			break
+		}
+	}
+	if !f {
 		return ""
 	}
 	return s
