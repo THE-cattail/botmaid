@@ -191,6 +191,36 @@ func (bm *BotMaid) initCommand() {
 		Help:       " <用户ID> - 将用户列入黑名单",
 		Master:     true,
 	})
+	bm.AddCommand(&Command{
+		Do: func(u *Update, b *Bot) bool {
+			if len(u.Message.Args) == 2 {
+				b.Reply(u, u.Message.Args[1])
+				return true
+			} else if len(u.Message.Args) == 4 {
+				id, err := strconv.ParseInt(u.Message.Args[3], 10, 64)
+				if err != nil {
+					b.Reply(u, err.Error())
+				}
+
+				b.API.Push(Update{
+					Chat: &Chat{
+						ID:   id,
+						Type: u.Message.Args[2],
+					},
+					Message: &Message{
+						Text: u.Message.Args[1],
+					},
+				})
+				return true
+			}
+			return false
+		},
+		Names:      []string{"send"},
+		ArgsMinLen: 2,
+		ArgsMaxLen: 4,
+		Help:       " <内容> (<发送对象类型> <发送对象 ID>) - 令 Bot 发送消息",
+		Master:     true,
+	})
 
 	sort.Stable(CommandSlice(bm.Commands))
 }
