@@ -19,6 +19,10 @@ func (b *Bot) IsMaster(u *User) bool {
 	return b.BotMaid.Redis.SIsMember("master_"+b.ID, u.ID).Val()
 }
 
+func (b *Bot) isBanned(u *User) bool {
+	return b.BotMaid.Redis.SIsMember("ban_"+b.ID, u.ID).Val()
+}
+
 // Platform returns a string showing the platform of the bot.
 func (b *Bot) Platform() string {
 	switch b.API.(type) {

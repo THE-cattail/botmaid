@@ -253,6 +253,10 @@ func (bm *BotMaid) startBot() {
 						return
 					}
 
+					if b.isBanned(u.User) {
+						return
+					}
+
 					args, err := shlex.Split(u.Message.Text)
 					if err == nil {
 						u.Message.Args = args
