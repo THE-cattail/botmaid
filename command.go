@@ -15,7 +15,7 @@ type Command struct {
 }
 
 // CommandSlice is a slice of Command that could be sort.
-type CommandSlice []Command
+type CommandSlice []*Command
 
 // Len is the length of a CommandSlice.
 func (cs CommandSlice) Len() int {
@@ -33,7 +33,7 @@ func (cs CommandSlice) Less(i, j int) bool {
 }
 
 // AddCommand adds a command into the []Command.
-func (bm *BotMaid) AddCommand(c Command) {
+func (bm *BotMaid) AddCommand(c *Command) {
 	bm.Commands = append(bm.Commands, c)
 	if c.Menu != "" {
 		for i := range bm.HelpMenus {

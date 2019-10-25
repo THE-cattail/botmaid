@@ -33,7 +33,7 @@ type BotMaid struct {
 	Bots      map[string]*Bot
 	Conf      *botMaidConfig
 	Redis     *redis.Client
-	Commands  []Command
+	Commands  CommandSlice
 	Timers    []Timer
 	HelpMenus []HelpMenu
 	Words     map[string][]string
@@ -131,22 +131,22 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 }
 
 func (bm *BotMaid) initCommand() {
-	bm.AddCommand(Command{
+	bm.AddCommand(&Command{
 		Do:       bm.help,
 		Priority: 10000,
 	})
-	bm.AddCommand(Command{
+	bm.AddCommand(&Command{
 		Do:       bm.help2,
 		Priority: -10000,
 	})
-	bm.AddCommand(Command{
+	bm.AddCommand(&Command{
 		Do: func(u *Update, b *Bot) bool {
-			if b.BotMaid.Redis.SIsMember("master_"+b.ID, u.User.ID).Val() {
+			if b.BotMaid.Redis.SIsMember("master_"+b.ID, u.Message.Args[1]).Val() {
 				b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterExisted"]), u.Message.Args[1]))
 				return true
 			}
 
-			b.BotMaid.Redis.SAdd("master_"+b.ID, u.User.ID)
+			b.BotMaid.Redis.SAdd("master_"+b.ID, u.Message.Args[1])
 			b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterAdded"]), u.Message.Args[1]))
 			return true
 		},
@@ -156,14 +156,14 @@ func (bm *BotMaid) initCommand() {
 		Help:       " <用户ID> - 将用户设为 Master",
 		Master:     true,
 	})
-	bm.AddCommand(Command{
+	bm.AddCommand(&Command{
 		Do: func(u *Update, b *Bot) bool {
-			if !b.BotMaid.Redis.SIsMember("master_"+b.ID, u.User.ID).Val() {
+			if !b.BotMaid.Redis.SIsMember("master_"+b.ID, u.Message.Args[1]).Val() {
 				b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterNotExisted"]), u.Message.Args[1]))
 				return true
 			}
 
-			b.BotMaid.Redis.SRem("master_"+b.ID, u.User.ID)
+			b.BotMaid.Redis.SRem("master_"+b.ID, u.Message.Args[1])
 			b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterRemoved"]), u.Message.Args[1]))
 			return true
 		},
@@ -171,6 +171,24 @@ func (bm *BotMaid) initCommand() {
 		ArgsMinLen: 2,
 		ArgsMaxLen: 2,
 		Help:       " <用户ID> - 取消用户的 Master 资格",
+		Master:     true,
+	})
+	bm.AddCommand(&Command{
+		Do: func(u *Update, b *Bot) bool {
+			if !b.BotMaid.Redis.SIsMember("master_"+b.ID, u.Message.Args[1]).Val() {
+				b.BotMaid.Redis.SAdd("ban_"+b.ID, u.Message.Args[1])
+				b.Reply(u, fmt.Sprintf(random.String(bm.Words["banAdded"]), u.Message.Args[1]))
+				return true
+			}
+
+			b.BotMaid.Redis.SRem("ban_"+b.ID, u.Message.Args[1])
+			b.Reply(u, fmt.Sprintf(random.String(bm.Words["banRemoved"]), u.Message.Args[1]))
+			return true
+		},
+		Names:      []string{"ban"},
+		ArgsMinLen: 2,
+		ArgsMaxLen: 2,
+		Help:       " <用户ID> - 将用户列入黑名单",
 		Master:     true,
 	})
 
@@ -224,6 +242,7 @@ func (bm *BotMaid) startBot() {
 
 					for _, c := range bm.Commands {
 						if !b.IsMaster(u.User) && c.Master {
+							b.Reply(&u, random.String(bm.Words["notMaster"]))
 							continue
 						}
 						if len(c.Names) != 0 && !b.IsCommand(&u, c.Names) {
@@ -344,6 +363,7 @@ func In(a interface{}, s ...interface{}) bool {
 			return false
 		}
 	}
+
 	for _, v := range s {
 		if v == a {
 			return true
