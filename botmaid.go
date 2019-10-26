@@ -275,10 +275,6 @@ func (bm *BotMaid) startBot() {
 					}
 
 					for _, c := range bm.Commands {
-						if !b.IsMaster(u.User) && c.Master {
-							b.Reply(&u, random.String(bm.Words["notMaster"]))
-							continue
-						}
 						if len(c.Names) != 0 && !b.IsCommand(&u, c.Names) {
 							continue
 						}
@@ -287,6 +283,10 @@ func (bm *BotMaid) startBot() {
 						}
 						if c.ArgsMaxLen != 0 && len(u.Message.Args) > c.ArgsMaxLen {
 							continue
+						}
+						if !b.IsMaster(u.User) && c.Master {
+							b.Reply(&u, random.String(bm.Words["notMaster"]))
+							break
 						}
 
 						if c.Do(&u, b) {
