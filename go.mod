@@ -1,4 +1,4 @@
-module github.com/catsworld/botmaid
+module github.com/catsworld/botmaid/v2
 
 go 1.13
 
