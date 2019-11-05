@@ -6,7 +6,7 @@ import (
 
 // Command is a func with priority value so that we can sort some Commands to make them in a specific order.
 type Command struct {
-	Do                     func(*Update, *Bot) bool
+	Do                     func(*Update) bool
 	Priority               int
 	Menu, MenuText, Help   string
 	Names                  []string

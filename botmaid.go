@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/catsworld/random"
-
 	"github.com/go-redis/redis"
 	"github.com/google/shlex"
 	"github.com/pelletier/go-toml"
@@ -81,7 +79,7 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 			break
 		}
 
-		b.API = q
+		(*b.API) = q
 	} else if botType == "Telegram" {
 		t := &APITelegramBot{}
 
@@ -113,7 +111,7 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 
 			break
 		}
-		b.API = t
+		(*b.API) = t
 	} else {
 		return fmt.Errorf("Init botmaid: Unknown type of %v", section)
 	}
@@ -140,69 +138,51 @@ func (bm *BotMaid) initCommand() {
 		Priority: -10000,
 	})
 	bm.AddCommand(&Command{
-		Do: func(u *Update, b *Bot) bool {
-			if b.BotMaid.Redis.SIsMember("master_"+b.ID, u.Message.Args[1]).Val() {
-				b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterExisted"]), u.Message.Args[1]))
+		Do: func(u *Update) bool {
+			if u.Bot.BotMaid.Redis.SIsMember("master_"+u.Bot.ID, u.Message.Args[1]).Val() {
+				u.Bot.BotMaid.Redis.SRem("master_"+u.Bot.ID, u.Message.Args[1])
+				u.Bot.Reply(u, "The master has been unregistered.")
 				return true
 			}
 
-			b.BotMaid.Redis.SAdd("master_"+b.ID, u.Message.Args[1])
-			b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterAdded"]), u.Message.Args[1]))
+			u.Bot.BotMaid.Redis.SAdd("master_"+u.Bot.ID, u.Message.Args[1])
+			u.Bot.Reply(u, "The user has been registered as master.")
 			return true
 		},
-		Names:      []string{"addmaster"},
+		Names:      []string{"master"},
 		ArgsMinLen: 2,
 		ArgsMaxLen: 2,
-		Help:       " <用户ID> - 将用户设为 Master",
 		Master:     true,
 	})
 	bm.AddCommand(&Command{
-		Do: func(u *Update, b *Bot) bool {
-			if !b.BotMaid.Redis.SIsMember("master_"+b.ID, u.Message.Args[1]).Val() {
-				b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterNotExisted"]), u.Message.Args[1]))
+		Do: func(u *Update) bool {
+			if u.Bot.BotMaid.Redis.SIsMember("ban_"+u.Bot.ID, u.Message.Args[1]).Val() {
+				u.Bot.BotMaid.Redis.SRem("ban_"+u.Bot.ID, u.Message.Args[1])
+				u.Bot.Reply(u, "The user has been unbanned.")
 				return true
 			}
 
-			b.BotMaid.Redis.SRem("master_"+b.ID, u.Message.Args[1])
-			b.Reply(u, fmt.Sprintf(random.String(bm.Words["masterRemoved"]), u.Message.Args[1]))
-			return true
-		},
-		Names:      []string{"rmmaster"},
-		ArgsMinLen: 2,
-		ArgsMaxLen: 2,
-		Help:       " <用户ID> - 取消用户的 Master 资格",
-		Master:     true,
-	})
-	bm.AddCommand(&Command{
-		Do: func(u *Update, b *Bot) bool {
-			if !b.BotMaid.Redis.SIsMember("master_"+b.ID, u.Message.Args[1]).Val() {
-				b.BotMaid.Redis.SAdd("ban_"+b.ID, u.Message.Args[1])
-				b.Reply(u, fmt.Sprintf(random.String(bm.Words["banAdded"]), u.Message.Args[1]))
-				return true
-			}
-
-			b.BotMaid.Redis.SRem("ban_"+b.ID, u.Message.Args[1])
-			b.Reply(u, fmt.Sprintf(random.String(bm.Words["banRemoved"]), u.Message.Args[1]))
+			u.Bot.BotMaid.Redis.SAdd("ban_"+u.Bot.ID, u.Message.Args[1])
+			u.Bot.Reply(u, "The user has been banned.")
 			return true
 		},
 		Names:      []string{"ban"},
 		ArgsMinLen: 2,
 		ArgsMaxLen: 2,
-		Help:       " <用户ID> - 将用户列入黑名单",
 		Master:     true,
 	})
 	bm.AddCommand(&Command{
-		Do: func(u *Update, b *Bot) bool {
+		Do: func(u *Update) bool {
 			if len(u.Message.Args) == 2 {
-				b.Reply(u, u.Message.Args[1])
+				u.Bot.Reply(u, u.Message.Args[1])
 				return true
 			} else if len(u.Message.Args) == 4 {
 				id, err := strconv.ParseInt(u.Message.Args[3], 10, 64)
 				if err != nil {
-					b.Reply(u, err.Error())
+					u.Bot.Reply(u, err.Error())
 				}
 
-				b.API.Push(Update{
+				(*u.Bot.API).Push(&Update{
 					Chat: &Chat{
 						ID:   id,
 						Type: u.Message.Args[2],
@@ -226,9 +206,10 @@ func (bm *BotMaid) initCommand() {
 }
 
 func (bm *BotMaid) startBot() {
-	for i := range bm.Bots {
+	for _, b := range bm.Bots {
+		bot := b
 		go func(b *Bot) {
-			updates, errors := b.API.GetUpdates(GetUpdatesConfig{
+			updates, errors := (*b.API).Pull(&PullConfig{
 				Limit:            100,
 				Timeout:          60,
 				RetryWaitingTime: time.Second * 3,
@@ -244,7 +225,8 @@ func (bm *BotMaid) startBot() {
 			}
 
 			for u := range updates {
-				go func(u Update) {
+				up := u
+				go func(u *Update) {
 					if !u.Time.After(bm.RespTime) {
 						return
 					}
@@ -257,11 +239,13 @@ func (bm *BotMaid) startBot() {
 						return
 					}
 
+					u.Bot = b
+
 					args, err := shlex.Split(u.Message.Text)
 					if err == nil {
 						u.Message.Args = args
 					}
-					u.Message.Command = b.extractCommand(&u)
+					u.Message.Command = b.extractCommand(u)
 
 					if bm.Conf.Log {
 						logText := u.Message.Text
@@ -278,7 +262,7 @@ func (bm *BotMaid) startBot() {
 						if !b.IsMaster(u.User) && c.Master {
 							continue
 						}
-						if len(c.Names) != 0 && !b.IsCommand(&u, c.Names) {
+						if len(c.Names) != 0 && !b.IsCommand(u, c.Names) {
 							continue
 						}
 						if c.ArgsMinLen != 0 && len(u.Message.Args) < c.ArgsMinLen {
@@ -288,13 +272,13 @@ func (bm *BotMaid) startBot() {
 							continue
 						}
 
-						if c.Do(&u, b) {
+						if c.Do(u) {
 							break
 						}
 					}
-				}(u)
+				}(up)
 			}
-		}(bm.Bots[i])
+		}(bot)
 	}
 }
 

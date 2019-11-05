@@ -62,8 +62,8 @@ func (a *APITelegramBot) API(end string, m map[string]interface{}) (interface{},
 	return ret["result"], nil
 }
 
-func (a *APITelegramBot) mapToUpdates(m []interface{}) ([]Update, error) {
-	us := []Update{}
+func (a *APITelegramBot) mapToUpdates(m []interface{}) ([]*Update, error) {
+	us := []*Update{}
 	for _, v := range m {
 		e := v.(map[string]interface{})
 
@@ -140,14 +140,14 @@ func (a *APITelegramBot) mapToUpdates(m []interface{}) ([]Update, error) {
 			}
 		}
 
-		us = append(us, *update)
+		us = append(us, update)
 	}
 	return us, nil
 }
 
-// GetUpdates gets updates and errors into the channels with a given config.
-func (a *APITelegramBot) GetUpdates(pc GetUpdatesConfig) (UpdateChannel, ErrorChannel) {
-	updates := make(chan Update)
+// Pull pulls updates and errors into the channels with a given config.
+func (a *APITelegramBot) Pull(pc *PullConfig) (UpdateChannel, ErrorChannel) {
+	updates := make(chan *Update)
 	errors := make(chan error)
 
 	go func() {
@@ -178,17 +178,17 @@ func (a *APITelegramBot) GetUpdates(pc GetUpdatesConfig) (UpdateChannel, ErrorCh
 }
 
 // Push pushes an update and returns it back if existing.
-func (a *APITelegramBot) Push(update Update) (Update, error) {
+func (a *APITelegramBot) Push(update *Update) (*Update, error) {
 	if update.Type == "delete" {
 		_, err := a.API("deleteMessage", map[string]interface{}{
 			"chat_id":    update.Chat.ID,
 			"message_id": update.ID,
 		})
 		if err != nil {
-			return Update{}, fmt.Errorf("Delete message: %v", err)
+			return nil, fmt.Errorf("Delete message: %v", err)
 		}
 
-		return Update{}, nil
+		return nil, nil
 	}
 
 	if update.Message.Image != "" && strings.HasSuffix(update.Message.Image, ".gif") {
@@ -203,12 +203,12 @@ func (a *APITelegramBot) Push(update Update) (Update, error) {
 
 		file, err := ioutil.ReadFile(update.Message.Image)
 		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendAnimation", err)
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendAnimation", err)
 		}
 
 		part, err := w.CreateFormFile("animation", filepath.Base(update.Message.Image))
 		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendAnimation", err)
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendAnimation", err)
 		}
 
 		part.Write(file)
@@ -219,33 +219,33 @@ func (a *APITelegramBot) Push(update Update) (Update, error) {
 
 		req, err := http.NewRequest("POST", method, buf)
 		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendAnimation", err)
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendAnimation", err)
 		}
 		req.Header = header
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendAnimation", err)
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendAnimation", err)
 		}
 		defer resp.Body.Close()
 
 		raw, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendAnimation", err)
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendAnimation", err)
 		}
 
 		m := map[string]interface{}{}
 		err = json.Unmarshal(raw, &m)
 		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendAnimation", err)
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendAnimation", err)
 		}
 
 		if _, ok := m["ok"]; !ok {
-			return Update{}, fmt.Errorf("Send image: API %s: Unsuccessful request", "sendAnimation")
+			return nil, fmt.Errorf("Send image: API %s: Unsuccessful request", "sendAnimation")
 		}
 
 		if !m["ok"].(bool) {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendAnimation", m["description"].(string))
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendAnimation", m["description"].(string))
 		}
 
 		update.ID = int64(m["result"].(map[string]interface{})["message_id"].(float64))
@@ -268,12 +268,12 @@ func (a *APITelegramBot) Push(update Update) (Update, error) {
 		} else {
 			file, err := ioutil.ReadFile(update.Message.Image)
 			if err != nil {
-				return Update{}, fmt.Errorf("Send image: API %s: %v", "sendPhoto", err)
+				return nil, fmt.Errorf("Send image: API %s: %v", "sendPhoto", err)
 			}
 
 			part, err := w.CreateFormFile("photo", filepath.Base(update.Message.Image))
 			if err != nil {
-				return Update{}, fmt.Errorf("Send image: API %s: %v", "sendPhoto", err)
+				return nil, fmt.Errorf("Send image: API %s: %v", "sendPhoto", err)
 			}
 
 			part.Write(file)
@@ -285,33 +285,33 @@ func (a *APITelegramBot) Push(update Update) (Update, error) {
 
 		req, err := http.NewRequest("POST", method, buf)
 		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendPhoto", err)
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendPhoto", err)
 		}
 		req.Header = header
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendPhoto", err)
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendPhoto", err)
 		}
 		defer resp.Body.Close()
 
 		raw, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendPhoto", err)
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendPhoto", err)
 		}
 
 		m := map[string]interface{}{}
 		err = json.Unmarshal(raw, &m)
 		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendPhoto", err)
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendPhoto", err)
 		}
 
 		if _, ok := m["ok"]; !ok {
-			return Update{}, fmt.Errorf("Send image: API %s: Unsuccessful request", "sendPhoto")
+			return nil, fmt.Errorf("Send image: API %s: Unsuccessful request", "sendPhoto")
 		}
 
 		if !m["ok"].(bool) {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendPhoto", m["description"].(string))
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendPhoto", m["description"].(string))
 		}
 
 		update.ID = int64(m["result"].(map[string]interface{})["message_id"].(float64))
@@ -334,12 +334,12 @@ func (a *APITelegramBot) Push(update Update) (Update, error) {
 		} else {
 			file, err := ioutil.ReadFile(update.Message.Audio)
 			if err != nil {
-				return Update{}, fmt.Errorf("Send audio: API %s: %v", "sendVoice", err)
+				return nil, fmt.Errorf("Send audio: API %s: %v", "sendVoice", err)
 			}
 
 			part, err := w.CreateFormFile("voice", filepath.Base(update.Message.Audio))
 			if err != nil {
-				return Update{}, fmt.Errorf("Send audio: API %s: %v", "sendVoice", err)
+				return nil, fmt.Errorf("Send audio: API %s: %v", "sendVoice", err)
 			}
 
 			part.Write(file)
@@ -351,33 +351,33 @@ func (a *APITelegramBot) Push(update Update) (Update, error) {
 
 		req, err := http.NewRequest("POST", method, buf)
 		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendVoice", err)
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendVoice", err)
 		}
 		req.Header = header
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendVoice", err)
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendVoice", err)
 		}
 		defer resp.Body.Close()
 
 		raw, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendVoice", err)
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendVoice", err)
 		}
 
 		m := map[string]interface{}{}
 		err = json.Unmarshal(raw, &m)
 		if err != nil {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendVoice", err)
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendVoice", err)
 		}
 
 		if _, ok := m["ok"]; !ok {
-			return Update{}, fmt.Errorf("Send image: API %s: Unsuccessful request", "sendVoice")
+			return nil, fmt.Errorf("Send image: API %s: Unsuccessful request", "sendVoice")
 		}
 
 		if !m["ok"].(bool) {
-			return Update{}, fmt.Errorf("Send image: API %s: %v", "sendVoice", m["description"].(string))
+			return nil, fmt.Errorf("Send image: API %s: %v", "sendVoice", m["description"].(string))
 		}
 
 		update.ID = int64(m["result"].(map[string]interface{})["message_id"].(float64))
@@ -390,7 +390,7 @@ func (a *APITelegramBot) Push(update Update) (Update, error) {
 		"text":    update.Message.Text,
 	})
 	if err != nil {
-		return Update{}, fmt.Errorf("Send text message: %v", err)
+		return nil, fmt.Errorf("Send text message: %v", err)
 	}
 
 	update.ID = int64(msg.(map[string]interface{})["message_id"].(float64))

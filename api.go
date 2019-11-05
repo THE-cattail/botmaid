@@ -10,32 +10,36 @@ import "time"
 //
 // Delete always deletes a specific update.
 type API interface {
-	GetUpdates(GetUpdatesConfig) (UpdateChannel, ErrorChannel)
-	Push(Update) (Update, error)
+	Pull(*PullConfig) (UpdateChannel, ErrorChannel)
+	Push(*Update) (*Update, error)
 }
 
 // Update is a struct for an update of APIs.
 type Update struct {
-	ID      int64
-	Type    string
-	Time    time.Time
+	ID int64
+
+	Type string
+	Time time.Time
+
 	Chat    *Chat
 	User    *User
 	Message *Message
+
+	Bot *Bot
 }
 
 // UpdateChannel is a channel for saving updates.
-type UpdateChannel chan Update
+type UpdateChannel chan *Update
 
 // ErrorChannel is a channel for saving errors.
 type ErrorChannel chan error
 
-// GetUpdatesConfig is a struct for getting updates.
+// PullConfig is a struct for pulling.
 //
 // Limit decides the number of updates pulled once.
 // Timeout decides the timeout of long polling.
 // RetryWaitingTime decides decides the time waiting after pulling an error.
-type GetUpdatesConfig struct {
+type PullConfig struct {
 	Limit            int
 	Timeout          int
 	RetryWaitingTime time.Duration
@@ -43,24 +47,28 @@ type GetUpdatesConfig struct {
 
 // Message is a struct for a message of an update.
 type Message struct {
-	ID      int64
-	Text    string
-	Image   string
-	Audio   string
+	ID int64
+
+	Text  string
+	Image string
+	Audio string
+
 	Args    []string
 	Command string
 }
 
 // Chat is a struct for a chat.
 type Chat struct {
-	ID    int64
+	ID int64
+
 	Type  string
 	Title string
 }
 
 // User is a struct for a user.
 type User struct {
-	ID       int64
+	ID int64
+
 	UserName string
 	NickName string
 }

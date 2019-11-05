@@ -74,8 +74,8 @@ func (a *APICqhttp) API(end string, m map[string]interface{}) (interface{}, erro
 	return ret["data"], nil
 }
 
-func (a *APICqhttp) mapToUpdates(m []interface{}) ([]Update, error) {
-	us := []Update{}
+func (a *APICqhttp) mapToUpdates(m []interface{}) ([]*Update, error) {
+	us := []*Update{}
 	for _, v := range m {
 		e := v.(map[string]interface{})
 
@@ -116,7 +116,7 @@ func (a *APICqhttp) mapToUpdates(m []interface{}) ([]Update, error) {
 			if update.Chat.Type == "group" {
 				m, err := a.API("get_group_list", map[string]interface{}{})
 				if err != nil {
-					return []Update{}, fmt.Errorf("Get updates: %v", err)
+					return []*Update{}, fmt.Errorf("Get updates: %v", err)
 				}
 
 				gs := m.([]interface{})
@@ -141,14 +141,14 @@ func (a *APICqhttp) mapToUpdates(m []interface{}) ([]Update, error) {
 			continue
 		}
 
-		us = append(us, *update)
+		us = append(us, update)
 	}
 	return us, nil
 }
 
-// GetUpdates gets updates and errors into the channels with a given config.
-func (a *APICqhttp) GetUpdates(pc GetUpdatesConfig) (UpdateChannel, ErrorChannel) {
-	updates := make(chan Update)
+// Pull pulls updates and errors into the channels with a given config.
+func (a *APICqhttp) Pull(pc *PullConfig) (UpdateChannel, ErrorChannel) {
+	updates := make(chan *Update)
 	errors := make(chan error)
 
 	go func() {
@@ -178,16 +178,16 @@ func (a *APICqhttp) GetUpdates(pc GetUpdatesConfig) (UpdateChannel, ErrorChannel
 }
 
 // Push pushes an update and returns it back if existing.
-func (a *APICqhttp) Push(update Update) (Update, error) {
+func (a *APICqhttp) Push(update *Update) (*Update, error) {
 	if update.Type == "delete" {
 		_, err := a.API("delete_msg", map[string]interface{}{
 			"message_id": update.ID,
 		})
 		if err != nil {
-			return Update{}, fmt.Errorf("Delete message: %v", err)
+			return nil, fmt.Errorf("Delete message: %v", err)
 		}
 
-		return Update{}, nil
+		return nil, nil
 	}
 
 	m := map[string]interface{}{
@@ -212,7 +212,7 @@ func (a *APICqhttp) Push(update Update) (Update, error) {
 		} else {
 			file, err := ioutil.ReadFile(update.Message.Audio)
 			if err != nil {
-				return Update{}, fmt.Errorf("Read audio file: %v", err)
+				return nil, fmt.Errorf("Read audio file: %v", err)
 			}
 			message += fmt.Sprintf("[CQ:record,file=base64://%s]", base64.StdEncoding.EncodeToString(file))
 		}
@@ -222,7 +222,7 @@ func (a *APICqhttp) Push(update Update) (Update, error) {
 		} else {
 			file, err := ioutil.ReadFile(update.Message.Image)
 			if err != nil {
-				return Update{}, fmt.Errorf("Read image file: %v", err)
+				return nil, fmt.Errorf("Read image file: %v", err)
 			}
 			message += fmt.Sprintf("[CQ:image,file=base64://%s]", base64.StdEncoding.EncodeToString(file))
 		}
@@ -234,7 +234,7 @@ func (a *APICqhttp) Push(update Update) (Update, error) {
 
 	msg, err := a.API("send_msg", m)
 	if err != nil {
-		return Update{}, fmt.Errorf("Send message: %v", err)
+		return nil, fmt.Errorf("Send message: %v", err)
 	}
 
 	update.ID = int64(msg.(map[string]interface{})["message_id"].(float64))

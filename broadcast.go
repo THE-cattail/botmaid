@@ -15,7 +15,7 @@ func (bm *BotMaid) Broadcast(key string, m *Message) {
 		chatType := args[1]
 		chatID, _ := strconv.ParseInt(args[2], 10, 0)
 
-		bm.Bots[botID].API.Push(Update{
+		(*bm.Bots[botID].API).Push(&Update{
 			Message: m,
 			Chat: &Chat{
 				Type: chatType,

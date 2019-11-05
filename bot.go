@@ -8,8 +8,10 @@ import (
 
 // Bot includes some information of a bot.
 type Bot struct {
-	ID      string
-	API     API
+	ID string
+
+	API *API
+
 	Self    *User
 	BotMaid *BotMaid
 }
@@ -25,7 +27,7 @@ func (b *Bot) isBanned(u *User) bool {
 
 // Platform returns a string showing the platform of the bot.
 func (b *Bot) Platform() string {
-	switch b.API.(type) {
+	switch (*b.API).(type) {
 	case *APICqhttp:
 		return "QQ"
 	case *APITelegramBot:
@@ -37,7 +39,7 @@ func (b *Bot) Platform() string {
 
 // At returns a string to mention someone in a message.
 func (b *Bot) At(u *User) []string {
-	switch b.API.(type) {
+	switch (*b.API).(type) {
 	case *APICqhttp:
 		return []string{fmt.Sprintf("[CQ:at,qq=%v]", u.ID), fmt.Sprintf("@%v", u.NickName)}
 	case *APITelegramBot:
@@ -49,7 +51,7 @@ func (b *Bot) At(u *User) []string {
 
 // BeAt checks if a message of an update is mentioning the bot.
 func (b *Bot) BeAt(u *Update) bool {
-	switch b.API.(type) {
+	switch (*b.API).(type) {
 	case *APICqhttp:
 		if (strings.Contains(u.Message.Text, fmt.Sprintf("[CQ:at,qq=%v]", b.Self.ID)) || strings.Contains(u.Message.Text, fmt.Sprintf("@%v", b.Self.NickName))) && b.extractCommand(u) == "" {
 			return true
@@ -64,12 +66,12 @@ func (b *Bot) BeAt(u *Update) bool {
 }
 
 // Reply replies a message back.
-func (b *Bot) Reply(u *Update, s ...string) (Update, error) {
+func (b *Bot) Reply(u *Update, s ...string) (*Update, error) {
 	if len(s) < 1 || len(s) > 2 {
-		return Update{}, errors.New("Invalid number of arguments")
+		return nil, errors.New("Invalid number of arguments")
 	}
 	if len(s) == 1 || s[1] == "Text" {
-		return b.API.Push(Update{
+		return (*b.API).Push(&Update{
 			Message: &Message{
 				Text: s[0],
 			},
@@ -77,7 +79,7 @@ func (b *Bot) Reply(u *Update, s ...string) (Update, error) {
 		})
 	}
 	if s[1] == "Image" {
-		return b.API.Push(Update{
+		return (*b.API).Push(&Update{
 			Message: &Message{
 				Image: s[0],
 			},
@@ -85,12 +87,12 @@ func (b *Bot) Reply(u *Update, s ...string) (Update, error) {
 		})
 	}
 	if s[1] == "Audio" {
-		return b.API.Push(Update{
+		return (*b.API).Push(&Update{
 			Message: &Message{
 				Audio: s[0],
 			},
 			Chat: u.Chat,
 		})
 	}
-	return Update{}, errors.New("Invalid type of message")
+	return nil, errors.New("Invalid type of message")
 }
