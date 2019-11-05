@@ -80,7 +80,7 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 			break
 		}
 
-		(*b.API) = q
+		*b.API = q
 	} else if botType == "Telegram" {
 		t := &APITelegramBot{}
 
@@ -112,7 +112,7 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 
 			break
 		}
-		(*b.API) = t
+		*b.API = t
 	} else {
 		return fmt.Errorf("Init botmaid: Unknown type of %v", section)
 	}
