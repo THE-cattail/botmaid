@@ -45,6 +45,7 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 	b := &Bot{
 		ID:      section,
 		BotMaid: bm,
+		API:     new(API),
 	}
 
 	if botType == "QQ" {
