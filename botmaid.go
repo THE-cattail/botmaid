@@ -359,6 +359,9 @@ func New(configFile string) (*BotMaid, error) {
 		"undefCommand": []string{
 			"Unknown command %v.",
 		},
+		"noPermission": []string{
+			"You don't have permission to use this command.",
+		},
 	}
 
 	return bm, nil
