@@ -352,6 +352,15 @@ func New(configFile string) (*BotMaid, error) {
 		}
 	}
 
+	bm.Words = map[string][]string{
+		"selfIntro": []string{
+			fmt.Sprintf("%%v, Please use %v to call this bot.", ListToString(bm.Conf.CommandPrefix, "\"%v\"", ", ", " or ")),
+		},
+		"undefCommand": []string{
+			"Unknown command %v.",
+		},
+	}
+
 	return bm, nil
 }
 
