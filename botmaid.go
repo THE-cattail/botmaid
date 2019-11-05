@@ -2,7 +2,6 @@
 package botmaid
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"sort"
@@ -43,9 +42,8 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 	botType := conf.Get(section + ".Type").(string)
 
 	b := &Bot{
-		ID:      section,
-		BotMaid: bm,
-		API:     new(API),
+		ID:  section,
+		API: new(API),
 	}
 
 	if botType == "QQ" {
@@ -141,14 +139,14 @@ func (bm *BotMaid) initCommand() {
 	})
 	bm.AddCommand(&Command{
 		Do: func(u *Update) bool {
-			if u.Bot.BotMaid.Redis.SIsMember("master_"+u.Bot.ID, u.Message.Args[1]).Val() {
-				u.Bot.BotMaid.Redis.SRem("master_"+u.Bot.ID, u.Message.Args[1])
-				bm.Reply(u, "The master has been unregistered.")
+			if bm.Redis.SIsMember("master_"+u.Bot.ID, u.Message.Args[1]).Val() {
+				bm.Redis.SRem("master_"+u.Bot.ID, u.Message.Args[1])
+				Reply(u, "The master has been unregistered.")
 				return true
 			}
 
-			u.Bot.BotMaid.Redis.SAdd("master_"+u.Bot.ID, u.Message.Args[1])
-			bm.Reply(u, "The user has been registered as master.")
+			bm.Redis.SAdd("master_"+u.Bot.ID, u.Message.Args[1])
+			Reply(u, "The user has been registered as master.")
 			return true
 		},
 		Names:      []string{"master"},
@@ -158,14 +156,14 @@ func (bm *BotMaid) initCommand() {
 	})
 	bm.AddCommand(&Command{
 		Do: func(u *Update) bool {
-			if u.Bot.BotMaid.Redis.SIsMember("ban_"+u.Bot.ID, u.Message.Args[1]).Val() {
-				u.Bot.BotMaid.Redis.SRem("ban_"+u.Bot.ID, u.Message.Args[1])
-				bm.Reply(u, "The user has been unbanned.")
+			if bm.Redis.SIsMember("ban_"+u.Bot.ID, u.Message.Args[1]).Val() {
+				bm.Redis.SRem("ban_"+u.Bot.ID, u.Message.Args[1])
+				Reply(u, "The user has been unbanned.")
 				return true
 			}
 
-			u.Bot.BotMaid.Redis.SAdd("ban_"+u.Bot.ID, u.Message.Args[1])
-			bm.Reply(u, "The user has been banned.")
+			bm.Redis.SAdd("ban_"+u.Bot.ID, u.Message.Args[1])
+			Reply(u, "The user has been banned.")
 			return true
 		},
 		Names:      []string{"ban"},
@@ -176,12 +174,12 @@ func (bm *BotMaid) initCommand() {
 	bm.AddCommand(&Command{
 		Do: func(u *Update) bool {
 			if len(u.Message.Args) == 2 {
-				bm.Reply(u, u.Message.Args[1])
+				Reply(u, u.Message.Args[1])
 				return true
 			} else if len(u.Message.Args) == 4 {
 				id, err := strconv.ParseInt(u.Message.Args[3], 10, 64)
 				if err != nil {
-					bm.Reply(u, err.Error())
+					Reply(u, err.Error())
 				}
 
 				(*u.Bot.API).Push(&Update{
@@ -237,11 +235,12 @@ func (bm *BotMaid) startBot() {
 						return
 					}
 
-					if b.isBanned(u.User) {
+					if bm.IsBanned(u.User) {
 						return
 					}
 
 					u.Bot = b
+					u.User.Bot = b
 
 					args, err := shlex.Split(u.Message.Text)
 					if err == nil {
@@ -261,7 +260,7 @@ func (bm *BotMaid) startBot() {
 					}
 
 					for _, c := range bm.Commands {
-						if !b.IsMaster(u.User) && c.Master {
+						if !bm.IsMaster(u.User) && c.Master {
 							continue
 						}
 						if len(c.Names) != 0 && !IsCommand(u, c.Names) {
@@ -368,73 +367,4 @@ func (bm *BotMaid) Start() error {
 	bm.loadTimers()
 
 	select {}
-}
-
-// Reply replies a message back.
-func (bm *BotMaid) Reply(u *Update, s ...string) (*Update, error) {
-	if len(s) < 1 || len(s) > 2 {
-		return nil, errors.New("Invalid number of arguments")
-	}
-	if len(s) == 1 || s[1] == "Text" {
-		return (*u.Bot.API).Push(&Update{
-			Message: &Message{
-				Text: s[0],
-			},
-			Chat: u.Chat,
-		})
-	}
-	if s[1] == "Image" {
-		return (*u.Bot.API).Push(&Update{
-			Message: &Message{
-				Image: s[0],
-			},
-			Chat: u.Chat,
-		})
-	}
-	if s[1] == "Audio" {
-		return (*u.Bot.API).Push(&Update{
-			Message: &Message{
-				Audio: s[0],
-			},
-			Chat: u.Chat,
-		})
-	}
-	return nil, errors.New("Invalid type of message")
-}
-
-// In checks if the element is in the slice.
-func In(a interface{}, s ...interface{}) bool {
-	if len(s) == 1 {
-		if _, ok := s[0].([]interface{}); ok {
-			for _, v := range s[0].([]interface{}) {
-				if v == a {
-					return true
-				}
-			}
-			return false
-		}
-	}
-
-	for _, v := range s {
-		if v == a {
-			return true
-		}
-	}
-	return false
-}
-
-// ListToString convert the list to a string.
-func ListToString(list []string, format string, separator string, andWord string) string {
-	if len(list) < 1 {
-		return ""
-	}
-	if len(list) == 1 {
-		return fmt.Sprintf(format, list[0])
-	}
-	ret := fmt.Sprintf(format, list[0])
-	for i := 1; i < len(list)-1; i++ {
-		ret += separator + fmt.Sprintf(format, list[i])
-	}
-	ret += andWord + fmt.Sprintf(format, list[len(list)-1])
-	return ret
 }

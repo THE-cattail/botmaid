@@ -71,4 +71,6 @@ type User struct {
 
 	UserName string
 	NickName string
+
+	Bot *Bot
 }

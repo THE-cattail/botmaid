@@ -19,7 +19,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, showUndef bool) {
 			s := ""
 
 			for _, v := range bm.Commands {
-				if v.Master && !u.Bot.IsMaster(u.User) {
+				if v.Master && !bm.IsMaster(u.User) {
 					continue
 				}
 				if v.Menu == hc {
@@ -31,7 +31,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, showUndef bool) {
 				s = s[:len(s)-1]
 			}
 
-			bm.Reply(u, s)
+			Reply(u, s)
 			return
 		}
 	}
@@ -39,7 +39,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, showUndef bool) {
 	s := ""
 
 	for _, c := range bm.Commands {
-		if c.Master && !u.Bot.IsMaster(u.User) {
+		if c.Master && !bm.IsMaster(u.User) {
 			continue
 		}
 		for _, n := range c.Names {
@@ -56,7 +56,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, showUndef bool) {
 			s = s[:len(s)-1]
 		}
 
-		bm.Reply(u, s)
+		Reply(u, s)
 		return
 	}
 
@@ -64,7 +64,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, showUndef bool) {
 		return
 	}
 
-	bm.Reply(u, fmt.Sprintf(random.String(bm.Words["undefCommand"]), hc))
+	Reply(u, fmt.Sprintf(random.String(bm.Words["undefCommand"]), hc))
 }
 
 func (bm *BotMaid) help(u *Update) bool {
@@ -83,7 +83,7 @@ func (bm *BotMaid) help(u *Update) bool {
 			f := false
 
 			for _, c := range bm.Commands {
-				if c.Master && !u.Bot.IsMaster(u.User) {
+				if c.Master && !bm.IsMaster(u.User) {
 					continue
 				}
 				if c.Menu == k {
@@ -106,7 +106,7 @@ func (bm *BotMaid) help(u *Update) bool {
 			s = s[:len(s)-1]
 		}
 
-		bm.Reply(u, s)
+		Reply(u, s)
 		return true
 	}
 
