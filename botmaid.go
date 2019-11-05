@@ -249,11 +249,8 @@ func (bm *BotMaid) startBot() {
 						Reply(u, random.String(bm.Words["invalidParameters"]))
 						return
 					}
-					u.Message.Arg, err := argsToMap(u.Message.Args)
-					if err != nil {
-						Reply(u, random.String(bm.Words["invalidParameters"]))
-						return
-					}
+					u.Message.Args = args
+
 					u.Message.Command = bm.extractCommand(u)
 
 					if bm.Conf.Log {
@@ -372,7 +369,7 @@ func New(configFile string) (*BotMaid, error) {
 		},
 		"invalidParameters": []string{
 			"The parameters of this command is invalid.",
-		}
+		},
 	}
 
 	return bm, nil
