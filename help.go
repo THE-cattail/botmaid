@@ -14,6 +14,8 @@ type HelpMenu struct {
 }
 
 func (bm *BotMaid) pushHelp(hc string, u *Update, showUndef bool) {
+	dontknow := true
+
 	for _, v := range bm.HelpMenus {
 		if hc == v.Menu || In(hc, v.Names) {
 			s := ""
@@ -23,7 +25,10 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, showUndef bool) {
 					continue
 				}
 				if v.Menu == hc {
-					s += v.Names[0] + v.Help + "\n"
+					dontknow = false
+					if v.Help != "" {
+						s += v.Names[0] + v.Help + "\n"
+					}
 				}
 			}
 
@@ -44,19 +49,27 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, showUndef bool) {
 		}
 		for _, n := range c.Names {
 			if n == hc {
-				s += n + c.Help + "\n"
+				dontknow = false
+				if c.Help != "" {
+					s += n + c.Help + "\n"
+				}
 				break
 			}
 		}
 	}
 
 	if s != "" {
+		dontknow = false
+	}
 
-		if s[len(s)-1] == '\n' {
-			s = s[:len(s)-1]
+	if !dontknow {
+		if s != "" {
+			if s[len(s)-1] == '\n' {
+				s = s[:len(s)-1]
+			}
+
+			Reply(u, s)
 		}
-
-		Reply(u, s)
 		return
 	}
 
