@@ -8,13 +8,17 @@ import (
 
 // BigInt returns a random bigInt in [x..y], with the help of crypto/rand.
 func BigInt(x, y *big.Int) *big.Int {
-	len := (&big.Int{}).Add(y, x)
-	len.Sub(len, big.NewInt(int64(1)))
+	if x.Cmp(y) < 0 {
+		return big.NewInt(int64(0))
+	}
+
+	len := (&big.Int{}).Sub(y, x)
+	len.Add(len, big.NewInt(int64(1)))
 
 	ret, err := rand.Int(rand.Reader, len)
 
 	if err != nil {
-		return &big.Int{}
+		return big.NewInt(int64(0))
 	}
 	return ret
 }

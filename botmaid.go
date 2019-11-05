@@ -76,6 +76,7 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 				ID:       int64(u["user_id"].(float64)),
 				UserName: strconv.FormatInt(int64(u["user_id"].(float64)), 10),
 				NickName: u["nickname"].(string),
+				Bot:      b,
 			}
 
 			break
@@ -103,6 +104,7 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 			b.Self = &User{
 				ID:       int64(u["id"].(float64)),
 				NickName: u["first_name"].(string),
+				Bot:      b,
 			}
 			if u["last_name"] != nil {
 				b.Self.NickName += " " + u["last_name"].(string)
@@ -143,12 +145,12 @@ func (bm *BotMaid) initCommand() {
 		Do: func(u *Update) bool {
 			if bm.Redis.SIsMember("master_"+u.Bot.ID, u.Message.Args[1]).Val() {
 				bm.Redis.SRem("master_"+u.Bot.ID, u.Message.Args[1])
-				Reply(u, "The master has been unregistered.")
+				Reply(u, random.String(bm.Words["unregMaster"]))
 				return true
 			}
 
 			bm.Redis.SAdd("master_"+u.Bot.ID, u.Message.Args[1])
-			Reply(u, "The user has been registered as master.")
+			Reply(u, random.String(bm.Words["regMaster"]))
 			return true
 		},
 		Names:      []string{"master"},
@@ -160,12 +162,12 @@ func (bm *BotMaid) initCommand() {
 		Do: func(u *Update) bool {
 			if bm.Redis.SIsMember("ban_"+u.Bot.ID, u.Message.Args[1]).Val() {
 				bm.Redis.SRem("ban_"+u.Bot.ID, u.Message.Args[1])
-				Reply(u, "The user has been unbanned.")
+				Reply(u, random.String(bm.Words["unbanUser"]))
 				return true
 			}
 
 			bm.Redis.SAdd("ban_"+u.Bot.ID, u.Message.Args[1])
-			Reply(u, "The user has been banned.")
+			Reply(u, random.String(bm.Words["banUser"]))
 			return true
 		},
 		Names:      []string{"ban"},
@@ -229,6 +231,11 @@ func (bm *BotMaid) startBot() {
 			for u := range updates {
 				up := u
 				go func(u *Update) {
+					u.Bot = b
+					if u.User != nil {
+						u.User.Bot = b
+					}
+
 					if !u.Time.After(bm.RespTime) {
 						return
 					}
@@ -241,18 +248,6 @@ func (bm *BotMaid) startBot() {
 						return
 					}
 
-					u.Bot = b
-					u.User.Bot = b
-
-					args, err := shlex.Split(u.Message.Text)
-					if err != nil {
-						Reply(u, random.String(bm.Words["invalidParameters"]))
-						return
-					}
-					u.Message.Args = args
-
-					u.Message.Command = bm.extractCommand(u)
-
 					if bm.Conf.Log {
 						logText := u.Message.Text
 						if u.User != nil {
@@ -263,6 +258,15 @@ func (bm *BotMaid) startBot() {
 						}
 						log.Println(logText)
 					}
+
+					args, err := shlex.Split(u.Message.Text)
+					if err != nil {
+						Reply(u, random.String(bm.Words["invalidParameters"]))
+						return
+					}
+					u.Message.Args = args
+
+					u.Message.Command = bm.extractCommand(u)
 
 					for _, c := range bm.Commands {
 						if !bm.IsMaster(u.User) && c.Master {
@@ -363,6 +367,18 @@ func New(configFile string) (*BotMaid, error) {
 		},
 		"undefCommand": []string{
 			"Unknown command %v.",
+		},
+		"unregMaster": []string{
+			"The master has been unregistered.",
+		},
+		"regMaster": []string{
+			"The user has been registered as master.",
+		},
+		"unbanUser": []string{
+			"The user has been unbanned.",
+		},
+		"banUser": []string{
+			"The user has been banned.",
 		},
 		"noPermission": []string{
 			"You don't have permission to use this command.",

@@ -89,8 +89,8 @@ func IsCommand(u *Update, c ...interface{}) bool {
 	}
 
 	if len(c) == 1 {
-		if _, ok := c[0].([]interface{}); ok {
-			for _, v := range c[0].([]interface{}) {
+		if _, ok := c[0].([]string); ok {
+			for _, v := range c[0].([]string) {
 				if u.Message.Command == v {
 					return true
 				}
