@@ -106,3 +106,8 @@ func IsCommand(u *Update, c ...interface{}) bool {
 	}
 	return false
 }
+
+func argsToMap(args []string) (map[string]string, error) {
+	ret := map[string]string{}
+	return ret, nil
+}

@@ -54,6 +54,7 @@ type Message struct {
 	Audio string
 
 	Args    []string
+	Arg     map[string]string
 	Command string
 }
 

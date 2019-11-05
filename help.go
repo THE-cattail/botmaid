@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/catsworld/random"
+	"github.com/catsworld/botmaid/random"
 )
 
 // HelpMenu describes the menu item of the help.

@@ -12,6 +12,8 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/google/shlex"
 	"github.com/pelletier/go-toml"
+
+	"github.com/catsworld/botmaid/random"
 )
 
 type botmaidRedisConfig struct {
@@ -243,8 +245,14 @@ func (bm *BotMaid) startBot() {
 					u.User.Bot = b
 
 					args, err := shlex.Split(u.Message.Text)
-					if err == nil {
-						u.Message.Args = args
+					if err != nil {
+						Reply(u, random.String(bm.Words["invalidParameters"]))
+						return
+					}
+					u.Message.Arg, err := argsToMap(u.Message.Args)
+					if err != nil {
+						Reply(u, random.String(bm.Words["invalidParameters"]))
+						return
 					}
 					u.Message.Command = bm.extractCommand(u)
 
@@ -362,6 +370,9 @@ func New(configFile string) (*BotMaid, error) {
 		"noPermission": []string{
 			"You don't have permission to use this command.",
 		},
+		"invalidParameters": []string{
+			"The parameters of this command is invalid.",
+		}
 	}
 
 	return bm, nil
