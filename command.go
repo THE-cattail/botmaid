@@ -57,19 +57,19 @@ func (bm *BotMaid) AddCommand(c *Command) {
 	}
 }
 
-func (b *Bot) extractCommand(u *Update) string {
+func (bm *BotMaid) extractCommand(u *Update) string {
 	if len(u.Message.Args) == 0 {
 		return ""
 	}
 	s := u.Message.Args[0]
-	for _, v := range b.At(b.Self) {
+	for _, v := range u.Bot.At(u.Bot.Self) {
 		if len(u.Message.Args[0])-len(v) > 0 && strings.LastIndex(u.Message.Args[0], v) == len(u.Message.Args[0])-len(v) {
 			s = u.Message.Args[0][:len(u.Message.Args[0])-len(v)]
 			break
 		}
 	}
 	f := false
-	for _, v := range b.BotMaid.Conf.CommandPrefix {
+	for _, v := range bm.Conf.CommandPrefix {
 		if strings.HasPrefix(s, v) {
 			s = strings.Replace(s, v, "", 1)
 			f = true
@@ -83,7 +83,7 @@ func (b *Bot) extractCommand(u *Update) string {
 }
 
 // IsCommand checks if a message is a specific command.
-func (b *Bot) IsCommand(u *Update, c []string) bool {
+func IsCommand(u *Update, c []string) bool {
 	if len(c) == 0 && u.Message.Command != "" {
 		return true
 	}

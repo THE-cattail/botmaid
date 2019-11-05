@@ -2,6 +2,7 @@
 package botmaid
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"sort"
@@ -141,12 +142,12 @@ func (bm *BotMaid) initCommand() {
 		Do: func(u *Update) bool {
 			if u.Bot.BotMaid.Redis.SIsMember("master_"+u.Bot.ID, u.Message.Args[1]).Val() {
 				u.Bot.BotMaid.Redis.SRem("master_"+u.Bot.ID, u.Message.Args[1])
-				u.Bot.Reply(u, "The master has been unregistered.")
+				bm.Reply(u, "The master has been unregistered.")
 				return true
 			}
 
 			u.Bot.BotMaid.Redis.SAdd("master_"+u.Bot.ID, u.Message.Args[1])
-			u.Bot.Reply(u, "The user has been registered as master.")
+			bm.Reply(u, "The user has been registered as master.")
 			return true
 		},
 		Names:      []string{"master"},
@@ -158,12 +159,12 @@ func (bm *BotMaid) initCommand() {
 		Do: func(u *Update) bool {
 			if u.Bot.BotMaid.Redis.SIsMember("ban_"+u.Bot.ID, u.Message.Args[1]).Val() {
 				u.Bot.BotMaid.Redis.SRem("ban_"+u.Bot.ID, u.Message.Args[1])
-				u.Bot.Reply(u, "The user has been unbanned.")
+				bm.Reply(u, "The user has been unbanned.")
 				return true
 			}
 
 			u.Bot.BotMaid.Redis.SAdd("ban_"+u.Bot.ID, u.Message.Args[1])
-			u.Bot.Reply(u, "The user has been banned.")
+			bm.Reply(u, "The user has been banned.")
 			return true
 		},
 		Names:      []string{"ban"},
@@ -174,12 +175,12 @@ func (bm *BotMaid) initCommand() {
 	bm.AddCommand(&Command{
 		Do: func(u *Update) bool {
 			if len(u.Message.Args) == 2 {
-				u.Bot.Reply(u, u.Message.Args[1])
+				bm.Reply(u, u.Message.Args[1])
 				return true
 			} else if len(u.Message.Args) == 4 {
 				id, err := strconv.ParseInt(u.Message.Args[3], 10, 64)
 				if err != nil {
-					u.Bot.Reply(u, err.Error())
+					bm.Reply(u, err.Error())
 				}
 
 				(*u.Bot.API).Push(&Update{
@@ -245,7 +246,7 @@ func (bm *BotMaid) startBot() {
 					if err == nil {
 						u.Message.Args = args
 					}
-					u.Message.Command = b.extractCommand(u)
+					u.Message.Command = bm.extractCommand(u)
 
 					if bm.Conf.Log {
 						logText := u.Message.Text
@@ -262,7 +263,7 @@ func (bm *BotMaid) startBot() {
 						if !b.IsMaster(u.User) && c.Master {
 							continue
 						}
-						if len(c.Names) != 0 && !b.IsCommand(u, c.Names) {
+						if len(c.Names) != 0 && !IsCommand(u, c.Names) {
 							continue
 						}
 						if c.ArgsMinLen != 0 && len(u.Message.Args) < c.ArgsMinLen {
@@ -366,6 +367,38 @@ func (bm *BotMaid) Start() error {
 	bm.loadTimers()
 
 	select {}
+}
+
+// Reply replies a message back.
+func (bm *BotMaid) Reply(u *Update, s ...string) (*Update, error) {
+	if len(s) < 1 || len(s) > 2 {
+		return nil, errors.New("Invalid number of arguments")
+	}
+	if len(s) == 1 || s[1] == "Text" {
+		return (*u.Bot.API).Push(&Update{
+			Message: &Message{
+				Text: s[0],
+			},
+			Chat: u.Chat,
+		})
+	}
+	if s[1] == "Image" {
+		return (*u.Bot.API).Push(&Update{
+			Message: &Message{
+				Image: s[0],
+			},
+			Chat: u.Chat,
+		})
+	}
+	if s[1] == "Audio" {
+		return (*u.Bot.API).Push(&Update{
+			Message: &Message{
+				Audio: s[0],
+			},
+			Chat: u.Chat,
+		})
+	}
+	return nil, errors.New("Invalid type of message")
 }
 
 // In checks if the element is in the slice.

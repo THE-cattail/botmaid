@@ -31,7 +31,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, showUndef bool) {
 				s = s[:len(s)-1]
 			}
 
-			u.Bot.Reply(u, s)
+			bm.Reply(u, s)
 			return
 		}
 	}
@@ -56,7 +56,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, showUndef bool) {
 			s = s[:len(s)-1]
 		}
 
-		u.Bot.Reply(u, s)
+		bm.Reply(u, s)
 		return
 	}
 
@@ -64,11 +64,11 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, showUndef bool) {
 		return
 	}
 
-	u.Bot.Reply(u, fmt.Sprintf(random.String(bm.Words["undefCommand"]), hc))
+	bm.Reply(u, fmt.Sprintf(random.String(bm.Words["undefCommand"]), hc))
 }
 
 func (bm *BotMaid) help(u *Update) bool {
-	if u.Bot.IsCommand(u, []string{"help"}) && len(u.Message.Args) == 1 {
+	if IsCommand(u, []string{"help"}) && len(u.Message.Args) == 1 {
 		s := fmt.Sprintf(random.String(bm.Words["selfIntro"]), u.User.NickName) + "\n\n"
 
 		menus := []string{}
@@ -106,15 +106,15 @@ func (bm *BotMaid) help(u *Update) bool {
 			s = s[:len(s)-1]
 		}
 
-		u.Bot.Reply(u, s)
+		bm.Reply(u, s)
 		return true
 	}
 
 	hc := ""
-	if u.Bot.IsCommand(u, []string{"help"}) && len(u.Message.Args) == 2 {
+	if IsCommand(u, []string{"help"}) && len(u.Message.Args) == 2 {
 		hc = u.Message.Args[1]
-	} else if u.Bot.IsCommand(u, []string{}) && len(u.Message.Args) == 2 && In(u.Message.Args[1], "help") {
-		hc = u.Bot.extractCommand(u)
+	} else if IsCommand(u, []string{}) && len(u.Message.Args) == 2 && In(u.Message.Args[1], "help") {
+		hc = bm.extractCommand(u)
 	} else {
 		return false
 	}
@@ -124,8 +124,8 @@ func (bm *BotMaid) help(u *Update) bool {
 }
 
 func (bm *BotMaid) help2(u *Update) bool {
-	if u.Bot.IsCommand(u, []string{}) {
-		hc := u.Bot.extractCommand(u)
+	if IsCommand(u, []string{}) {
+		hc := bm.extractCommand(u)
 
 		bm.pushHelp(hc, u, false)
 		return true

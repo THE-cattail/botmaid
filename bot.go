@@ -1,7 +1,6 @@
 package botmaid
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 )
@@ -53,46 +52,14 @@ func (b *Bot) At(u *User) []string {
 func (b *Bot) BeAt(u *Update) bool {
 	switch (*b.API).(type) {
 	case *APICqhttp:
-		if (strings.Contains(u.Message.Text, fmt.Sprintf("[CQ:at,qq=%v]", b.Self.ID)) || strings.Contains(u.Message.Text, fmt.Sprintf("@%v", b.Self.NickName))) && b.extractCommand(u) == "" {
+		if (strings.Contains(u.Message.Text, fmt.Sprintf("[CQ:at,qq=%v]", b.Self.ID)) || strings.Contains(u.Message.Text, fmt.Sprintf("@%v", b.Self.NickName))) && b.BotMaid.extractCommand(u) == "" {
 			return true
 		}
 	case *APITelegramBot:
-		if strings.Contains(u.Message.Text, fmt.Sprintf("@%v", b.Self.UserName)) && b.extractCommand(u) == "" {
+		if strings.Contains(u.Message.Text, fmt.Sprintf("@%v", b.Self.UserName)) && b.BotMaid.extractCommand(u) == "" {
 			return true
 		}
 	}
 
 	return false
-}
-
-// Reply replies a message back.
-func (b *Bot) Reply(u *Update, s ...string) (*Update, error) {
-	if len(s) < 1 || len(s) > 2 {
-		return nil, errors.New("Invalid number of arguments")
-	}
-	if len(s) == 1 || s[1] == "Text" {
-		return (*b.API).Push(&Update{
-			Message: &Message{
-				Text: s[0],
-			},
-			Chat: u.Chat,
-		})
-	}
-	if s[1] == "Image" {
-		return (*b.API).Push(&Update{
-			Message: &Message{
-				Image: s[0],
-			},
-			Chat: u.Chat,
-		})
-	}
-	if s[1] == "Audio" {
-		return (*b.API).Push(&Update{
-			Message: &Message{
-				Audio: s[0],
-			},
-			Chat: u.Chat,
-		})
-	}
-	return nil, errors.New("Invalid type of message")
 }
