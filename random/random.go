@@ -8,7 +8,7 @@ import (
 
 // BigInt returns a random bigInt in [x..y], with the help of crypto/rand.
 func BigInt(x, y *big.Int) *big.Int {
-	if x.Cmp(y) < 0 {
+	if x.Cmp(y) > 0 {
 		return big.NewInt(int64(0))
 	}
 
