@@ -12,10 +12,12 @@ func BigInt(x, y *big.Int) *big.Int {
 		return big.NewInt(int64(0))
 	}
 
-	len := (&big.Int{}).Sub(y, x)
+	len := &big.Int{}
+	len.Sub(y, x)
 	len.Add(len, big.NewInt(int64(1)))
 
 	ret, err := rand.Int(rand.Reader, len)
+	ret.Add(ret, x)
 
 	if err != nil {
 		return big.NewInt(int64(0))
