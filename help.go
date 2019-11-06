@@ -69,7 +69,10 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, showUndef bool) {
 			}
 
 			Reply(u, s)
+			return
 		}
+
+		Reply(u, fmt.Sprintf(random.String(bm.Words["noHelpText"])), u.Message.Command)
 		return
 	}
 
@@ -150,7 +153,7 @@ func (bm *BotMaid) help2(u *Update) bool {
 			}
 
 			if !bm.IsMaster(u.User) && c.Master {
-				Reply(u, random.String(bm.Words["noPermission"]))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["noPermission"])), u.User.NickName, u.Message.Command)
 				return true
 			}
 		}

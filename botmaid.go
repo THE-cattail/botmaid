@@ -137,20 +137,22 @@ func (bm *BotMaid) initCommand() {
 		Do:       bm.help,
 		Priority: 10000,
 	})
+
 	bm.AddCommand(&Command{
 		Do:       bm.help2,
 		Priority: -10000,
 	})
+
 	bm.AddCommand(&Command{
 		Do: func(u *Update) bool {
 			if bm.Redis.SIsMember("master_"+u.Bot.ID, u.Message.Args[1]).Val() {
 				bm.Redis.SRem("master_"+u.Bot.ID, u.Message.Args[1])
-				Reply(u, random.String(bm.Words["unregMaster"]))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["unregMaster"])), u.Message.Args[1])
 				return true
 			}
 
 			bm.Redis.SAdd("master_"+u.Bot.ID, u.Message.Args[1])
-			Reply(u, random.String(bm.Words["regMaster"]))
+			Reply(u, fmt.Sprintf(random.String(bm.Words["regMaster"])), u.Message.Args[1])
 			return true
 		},
 		Names:      []string{"master"},
@@ -158,16 +160,17 @@ func (bm *BotMaid) initCommand() {
 		ArgsMaxLen: 2,
 		Master:     true,
 	})
+
 	bm.AddCommand(&Command{
 		Do: func(u *Update) bool {
 			if bm.Redis.SIsMember("ban_"+u.Bot.ID, u.Message.Args[1]).Val() {
 				bm.Redis.SRem("ban_"+u.Bot.ID, u.Message.Args[1])
-				Reply(u, random.String(bm.Words["unbanUser"]))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["unbanUser"])), u.Message.Args[1])
 				return true
 			}
 
 			bm.Redis.SAdd("ban_"+u.Bot.ID, u.Message.Args[1])
-			Reply(u, random.String(bm.Words["banUser"]))
+			Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"])), u.Message.Args[1])
 			return true
 		},
 		Names:      []string{"ban"},
@@ -175,6 +178,7 @@ func (bm *BotMaid) initCommand() {
 		ArgsMaxLen: 2,
 		Master:     true,
 	})
+
 	bm.AddCommand(&Command{
 		Do: func(u *Update) bool {
 			if len(u.Message.Args) == 2 {
@@ -261,7 +265,7 @@ func (bm *BotMaid) startBot() {
 
 					args, err := shlex.Split(u.Message.Text)
 					if err != nil {
-						Reply(u, random.String(bm.Words["invalidParameters"]))
+						Reply(u, fmt.Sprintf(random.String(bm.Words["invalidParameters"])), u.Message.Text)
 						return
 					}
 					u.Message.Args = args
@@ -363,28 +367,31 @@ func New(configFile string) (*BotMaid, error) {
 
 	bm.Words = map[string][]string{
 		"selfIntro": []string{
-			fmt.Sprintf("%%v, Please use %v to call this bot.", ListToString(bm.Conf.CommandPrefix, "\"%v\"", ", ", " or ")),
+			fmt.Sprintf("%%s, Please use %s to call this bot.", ListToString(bm.Conf.CommandPrefix, "\"%v\"", ", ", " or ")),
 		},
 		"undefCommand": []string{
-			"Unknown command %v.",
+			"Unknown command %s.",
 		},
 		"unregMaster": []string{
-			"The master has been unregistered.",
+			"The master %s has been unregistered.",
 		},
 		"regMaster": []string{
-			"The user has been registered as master.",
+			"The user %s has been registered as master.",
 		},
 		"unbanUser": []string{
-			"The user has been unbanned.",
+			"The user %s has been unbanned.",
 		},
 		"banUser": []string{
-			"The user has been banned.",
+			"The user %s has been banned.",
 		},
 		"noPermission": []string{
-			"You don't have permission to use this command.",
+			"%s, you don't have permission to use the command %s.",
 		},
 		"invalidParameters": []string{
-			"The parameters of this command is invalid.",
+			"The parameters of the command \"%s\" is invalid.",
+		},
+		"noHelpText": []string{
+			"The command \"%s\" has no help text.",
 		},
 	}
 
