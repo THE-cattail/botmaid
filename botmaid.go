@@ -367,31 +367,31 @@ func New(configFile string) (*BotMaid, error) {
 
 	bm.Words = map[string][]string{
 		"selfIntro": []string{
-			fmt.Sprintf("%%s, Please use %s to call this bot.", ListToString(bm.Conf.CommandPrefix, "\"%v\"", ", ", " or ")),
+			fmt.Sprintf("%%v, Please use %v to call this bot.", ListToString(bm.Conf.CommandPrefix, "\"%v\"", ", ", " or ")),
 		},
 		"undefCommand": []string{
-			"Unknown command %s.",
+			"Unknown command %v.",
 		},
 		"unregMaster": []string{
-			"The master %s has been unregistered.",
+			"The master %v has been unregistered.",
 		},
 		"regMaster": []string{
-			"The user %s has been registered as master.",
+			"The user %v has been registered as master.",
 		},
 		"unbanUser": []string{
-			"The user %s has been unbanned.",
+			"The user %v has been unbanned.",
 		},
 		"banUser": []string{
-			"The user %s has been banned.",
+			"The user %v has been banned.",
 		},
 		"noPermission": []string{
-			"%s, you don't have permission to use the command %s.",
+			"%v, you don't have permission to use the command %v.",
 		},
 		"invalidParameters": []string{
-			"The parameters of the command \"%s\" is invalid.",
+			"The parameters of the command \"%v\" is invalid.",
 		},
 		"noHelpText": []string{
-			"The command \"%s\" has no help text.",
+			"The command \"%v\" has no help text.",
 		},
 	}
 
