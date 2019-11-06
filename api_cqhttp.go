@@ -45,30 +45,30 @@ func (a *APICqhttp) API(end string, m map[string]interface{}) (interface{}, erro
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("API %s: %v", end, err)
+		return nil, fmt.Errorf("API %v: %v", end, err)
 	}
 	defer resp.Body.Close()
 
 	raw, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("API %s: %v", end, err)
+		return nil, fmt.Errorf("API %v: %v", end, err)
 	}
 
 	ret := map[string]interface{}{}
 	err = json.Unmarshal(raw, &ret)
 	if err != nil {
-		return nil, fmt.Errorf("API %s: %v", end, err)
+		return nil, fmt.Errorf("API %v: %v", end, err)
 	}
 
 	if _, ok := ret["status"]; !ok {
-		return nil, fmt.Errorf("API %s: Unsuccessful request", end)
+		return nil, fmt.Errorf("API %v: Unsuccessful request", end)
 	}
 
 	if ret["status"].(string) == "failed" {
 		if s, ok := retDescCqhttp[int(ret["retcode"].(float64))]; ok {
-			return nil, fmt.Errorf("API %s: %v", end, s)
+			return nil, fmt.Errorf("API %v: %v", end, s)
 		}
-		return nil, fmt.Errorf("API %s: %v", end, ret["retcode"].(float64))
+		return nil, fmt.Errorf("API %v: %v", end, ret["retcode"].(float64))
 	}
 
 	return ret["data"], nil
@@ -208,23 +208,23 @@ func (a *APICqhttp) Push(update *Update) (*Update, error) {
 
 	if update.Message.Audio != "" {
 		if strings.HasPrefix(update.Message.Audio, "http://") || strings.HasPrefix(update.Message.Audio, "https://") {
-			message += fmt.Sprintf("[CQ:record,file=%s]", update.Message.Audio)
+			message += fmt.Sprintf("[CQ:record,file=%v]", update.Message.Audio)
 		} else {
 			file, err := ioutil.ReadFile(update.Message.Audio)
 			if err != nil {
 				return nil, fmt.Errorf("Read audio file: %v", err)
 			}
-			message += fmt.Sprintf("[CQ:record,file=base64://%s]", base64.StdEncoding.EncodeToString(file))
+			message += fmt.Sprintf("[CQ:record,file=base64://%v]", base64.StdEncoding.EncodeToString(file))
 		}
 	} else if update.Message.Image != "" {
 		if strings.HasPrefix(update.Message.Image, "http://") || strings.HasPrefix(update.Message.Image, "https://") {
-			message += fmt.Sprintf("[CQ:image,file=%s]", update.Message.Image)
+			message += fmt.Sprintf("[CQ:image,file=%v]", update.Message.Image)
 		} else {
 			file, err := ioutil.ReadFile(update.Message.Image)
 			if err != nil {
 				return nil, fmt.Errorf("Read image file: %v", err)
 			}
-			message += fmt.Sprintf("[CQ:image,file=base64://%s]", base64.StdEncoding.EncodeToString(file))
+			message += fmt.Sprintf("[CQ:image,file=base64://%v]", base64.StdEncoding.EncodeToString(file))
 		}
 	} else {
 		message += update.Message.Text
