@@ -154,8 +154,8 @@ func (bm *BotMaid) help2(u *Update) bool {
 				return true
 			}
 		}
-		hc := bm.extractCommand(u)
 
+		hc := u.Message.Command
 		bm.pushHelp(hc, u, false)
 		return true
 	}
