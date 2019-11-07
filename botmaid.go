@@ -169,14 +169,14 @@ func (bm *BotMaid) initCommand() {
 			del, _ := u.Message.Flag.GetBool("del")
 			if del || is {
 				bm.Redis.SRem("master_"+u.Bot.ID, id)
-				Reply(u, fmt.Sprintf(random.String(bm.Words["unregMaster"]), id))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["unregMaster"]), u.Message.Flag.Args()[1]))
 				return true
 			}
 
 			add, _ := u.Message.Flag.GetBool("add")
 			if add || !is {
 				bm.Redis.SAdd("master_"+u.Bot.ID, id)
-				Reply(u, fmt.Sprintf(random.String(bm.Words["regMaster"]), id))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["regMaster"]), u.Message.Flag.Args()[1]))
 			}
 
 			return false
@@ -206,14 +206,14 @@ func (bm *BotMaid) initCommand() {
 			del, _ := u.Message.Flag.GetBool("del")
 			if del || is {
 				bm.Redis.SRem("ban_"+u.Bot.ID, id)
-				Reply(u, fmt.Sprintf(random.String(bm.Words["unbanUser"]), id))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["unbanUser"]), u.Message.Flag.Args()[1]))
 				return true
 			}
 
 			add, _ := u.Message.Flag.GetBool("add")
 			if add || !is {
 				bm.Redis.SAdd("ban_"+u.Bot.ID, id)
-				Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"]), id))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"]), u.Message.Flag.Args()[1]))
 			}
 
 			return false
