@@ -146,7 +146,7 @@ func (bm *BotMaid) initCommand() {
 				helps := []string{}
 
 				for _, v := range bm.Commands {
-					if v.Help == nil && v.Help.Menu != "" {
+					if v.Help == nil || v.Help.Menu != "" {
 						continue
 					}
 
@@ -361,12 +361,13 @@ func (bm *BotMaid) startBot() {
 						Reply(u, fmt.Sprintf(random.String(bm.Words["invalidParameters"])), At(u.User), u.Message.Text)
 						return
 					}
+					u.Message.Args = args
 
 					u.Message.Command = bm.extractCommand(u)
 
 					for _, c := range bm.Commands {
 						if c.Help != nil && c.Help.Menu != "" {
-							bm.Flags[c.Help.Menu].Parse(args)
+							bm.Flags[c.Help.Menu].Parse(u.Message.Args)
 						}
 					}
 
