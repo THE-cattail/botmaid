@@ -1,6 +1,10 @@
 package botmaid
 
-import "time"
+import (
+	"time"
+
+	"github.com/spf13/pflag"
+)
 
 // API is an interface including some common behaviors for APIs.
 //
@@ -53,8 +57,9 @@ type Message struct {
 	Image string
 	Audio string
 
-	Args    []string
 	Command string
+
+	Flag *pflag.FlagSet
 }
 
 // Chat is a struct for a chat.

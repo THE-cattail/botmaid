@@ -12,6 +12,7 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/google/shlex"
 	"github.com/pelletier/go-toml"
+	"github.com/spf13/pflag"
 
 	"github.com/catsworld/botmaid/random"
 )
@@ -145,14 +146,14 @@ func (bm *BotMaid) initCommand() {
 
 	bm.AddCommand(&Command{
 		Do: func(u *Update) bool {
-			if bm.Redis.SIsMember("master_"+u.Bot.ID, u.Message.Args[1]).Val() {
-				bm.Redis.SRem("master_"+u.Bot.ID, u.Message.Args[1])
-				Reply(u, fmt.Sprintf(random.String(bm.Words["unregMaster"])), u.Message.Args[1])
+			if bm.Redis.SIsMember("master_"+u.Bot.ID, u.Message.Flag.Args()[1]).Val() {
+				bm.Redis.SRem("master_"+u.Bot.ID, u.Message.Flag.Args()[1])
+				Reply(u, fmt.Sprintf(random.String(bm.Words["unregMaster"])), u.Message.Flag.Args()[1])
 				return true
 			}
 
-			bm.Redis.SAdd("master_"+u.Bot.ID, u.Message.Args[1])
-			Reply(u, fmt.Sprintf(random.String(bm.Words["regMaster"])), u.Message.Args[1])
+			bm.Redis.SAdd("master_"+u.Bot.ID, u.Message.Flag.Args()[1])
+			Reply(u, fmt.Sprintf(random.String(bm.Words["regMaster"])), u.Message.Flag.Args()[1])
 			return true
 		},
 		Names:      []string{"master"},
@@ -163,14 +164,14 @@ func (bm *BotMaid) initCommand() {
 
 	bm.AddCommand(&Command{
 		Do: func(u *Update) bool {
-			if bm.Redis.SIsMember("ban_"+u.Bot.ID, u.Message.Args[1]).Val() {
-				bm.Redis.SRem("ban_"+u.Bot.ID, u.Message.Args[1])
-				Reply(u, fmt.Sprintf(random.String(bm.Words["unbanUser"])), u.Message.Args[1])
+			if bm.Redis.SIsMember("ban_"+u.Bot.ID, u.Message.Flag.Args()[1]).Val() {
+				bm.Redis.SRem("ban_"+u.Bot.ID, u.Message.Flag.Args()[1])
+				Reply(u, fmt.Sprintf(random.String(bm.Words["unbanUser"])), u.Message.Flag.Args()[1])
 				return true
 			}
 
-			bm.Redis.SAdd("ban_"+u.Bot.ID, u.Message.Args[1])
-			Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"])), u.Message.Args[1])
+			bm.Redis.SAdd("ban_"+u.Bot.ID, u.Message.Flag.Args()[1])
+			Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"])), u.Message.Flag.Args()[1])
 			return true
 		},
 		Names:      []string{"ban"},
@@ -181,11 +182,11 @@ func (bm *BotMaid) initCommand() {
 
 	bm.AddCommand(&Command{
 		Do: func(u *Update) bool {
-			if len(u.Message.Args) == 2 {
-				Reply(u, u.Message.Args[1])
+			if len(u.Message.Flag.Args()) == 2 {
+				Reply(u, u.Message.Flag.Args()[1])
 				return true
-			} else if len(u.Message.Args) == 4 {
-				id, err := strconv.ParseInt(u.Message.Args[3], 10, 64)
+			} else if len(u.Message.Flag.Args()) == 4 {
+				id, err := strconv.ParseInt(u.Message.Flag.Args()[3], 10, 64)
 				if err != nil {
 					Reply(u, err.Error())
 				}
@@ -193,10 +194,10 @@ func (bm *BotMaid) initCommand() {
 				(*u.Bot.API).Push(&Update{
 					Chat: &Chat{
 						ID:   id,
-						Type: u.Message.Args[2],
+						Type: u.Message.Flag.Args()[2],
 					},
 					Message: &Message{
-						Text: u.Message.Args[1],
+						Text: u.Message.Flag.Args()[1],
 					},
 				})
 				return true
@@ -268,7 +269,6 @@ func (bm *BotMaid) startBot() {
 						Reply(u, fmt.Sprintf(random.String(bm.Words["invalidParameters"])), u.Message.Text)
 						return
 					}
-					u.Message.Args = args
 
 					u.Message.Command = bm.extractCommand(u)
 
@@ -279,12 +279,16 @@ func (bm *BotMaid) startBot() {
 						if len(c.Names) != 0 && !IsCommand(u, c.Names) {
 							continue
 						}
-						if c.ArgsMinLen != 0 && len(u.Message.Args) < c.ArgsMinLen {
+						if c.ArgsMinLen != 0 && len(u.Message.Flag.Args()) < c.ArgsMinLen {
 							continue
 						}
-						if c.ArgsMaxLen != 0 && len(u.Message.Args) > c.ArgsMaxLen {
+						if c.ArgsMaxLen != 0 && len(u.Message.Flag.Args()) > c.ArgsMaxLen {
 							continue
 						}
+
+						u.Message.Flag = &pflag.FlagSet{}
+						c.SetFlag(u)
+						u.Message.Flag.Parse(args)
 
 						if c.Do(u) {
 							break
@@ -348,17 +352,15 @@ func New(configFile string) (*BotMaid, error) {
 
 	for _, v := range conf.Keys() {
 		if strings.HasPrefix(v, "Bot_") {
-			section := v
-
-			if conf.Get(section) == nil {
+			if conf.Get(v) == nil {
 				break
 			}
 
-			if conf.Get(section+".Type") == nil {
-				return nil, fmt.Errorf("Init botmaid: Missing type of %v", section)
+			if conf.Get(v+".Type") == nil {
+				return nil, fmt.Errorf("Init botmaid: Missing type of %v", v)
 			}
 
-			err := bm.readBotConfig(conf, section)
+			err := bm.readBotConfig(conf, v)
 			if err != nil {
 				return nil, fmt.Errorf("Read config: %v", err)
 			}

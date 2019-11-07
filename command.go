@@ -6,6 +6,7 @@ import (
 
 // Command is a func with priority value so that we can sort some Commands to make them in a specific order.
 type Command struct {
+	SetFlag                func(*Update)
 	Do                     func(*Update) bool
 	Priority               int
 	Menu, MenuText, Help   string
@@ -58,13 +59,13 @@ func (bm *BotMaid) AddCommand(c *Command) {
 }
 
 func (bm *BotMaid) extractCommand(u *Update) string {
-	if len(u.Message.Args) == 0 {
+	if len(u.Message.Flag.Args()) == 0 {
 		return ""
 	}
-	s := u.Message.Args[0]
-	for _, v := range At(u.Bot.Self) {
-		if len(u.Message.Args[0])-len(v) > 0 && strings.LastIndex(u.Message.Args[0], v) == len(u.Message.Args[0])-len(v) {
-			s = u.Message.Args[0][:len(u.Message.Args[0])-len(v)]
+	s := u.Message.Flag.Args()[0]
+	for _, v := range ats(u.Bot.Self) {
+		if len(u.Message.Flag.Args()[0])-len(v) > 0 && strings.LastIndex(u.Message.Flag.Args()[0], v) == len(u.Message.Flag.Args()[0])-len(v) {
+			s = u.Message.Flag.Args()[0][:len(u.Message.Flag.Args()[0])-len(v)]
 			break
 		}
 	}

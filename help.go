@@ -84,7 +84,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, showUndef bool) {
 }
 
 func (bm *BotMaid) help(u *Update) bool {
-	if IsCommand(u, "help") && len(u.Message.Args) == 1 {
+	if IsCommand(u, "help") && len(u.Message.Flag.Args()) == 1 {
 		s := fmt.Sprintf(random.String(bm.Words["selfIntro"]), u.User.NickName) + "\n\n"
 
 		menus := []string{}
@@ -127,9 +127,9 @@ func (bm *BotMaid) help(u *Update) bool {
 	}
 
 	hc := ""
-	if IsCommand(u, "help") && len(u.Message.Args) == 2 {
-		hc = u.Message.Args[1]
-	} else if IsCommand(u) && len(u.Message.Args) == 2 && In(u.Message.Args[1], "help") {
+	if IsCommand(u, "help") && len(u.Message.Flag.Args()) == 2 {
+		hc = u.Message.Flag.Args()[1]
+	} else if IsCommand(u) && len(u.Message.Flag.Args()) == 2 && In(u.Message.Flag.Args()[1], "help") {
 		hc = bm.extractCommand(u)
 	} else {
 		return false
@@ -145,10 +145,10 @@ func (bm *BotMaid) help2(u *Update) bool {
 			if len(c.Names) != 0 && !IsCommand(u, c.Names) {
 				continue
 			}
-			if c.ArgsMinLen != 0 && len(u.Message.Args) < c.ArgsMinLen {
+			if c.ArgsMinLen != 0 && len(u.Message.Flag.Args()) < c.ArgsMinLen {
 				continue
 			}
-			if c.ArgsMaxLen != 0 && len(u.Message.Args) > c.ArgsMaxLen {
+			if c.ArgsMaxLen != 0 && len(u.Message.Flag.Args()) > c.ArgsMaxLen {
 				continue
 			}
 

@@ -3,6 +3,7 @@ package botmaid
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -37,15 +38,26 @@ func (bm *BotMaid) IsBanned(u *User) bool {
 	return bm.Redis.SIsMember("ban_"+u.Bot.ID, u.ID).Val()
 }
 
+func ats(u *User) []string {
+	if u.Bot.Platform() == "QQ" {
+		return []string{fmt.Sprintf("[CQ:at,qq=%v]", u.ID), fmt.Sprintf("@%v", u.NickName)}
+	}
+
+	if u.Bot.Platform() == "Telegram" {
+		return []string{fmt.Sprintf("tg://user?id=%v", u.ID), fmt.Sprintf("@%v", u.UserName)}
+	}
+
+	return []string{""}
+}
+
 // BeAt checks if a message of an update is mentioning the bot.
 func (bm *BotMaid) BeAt(u *Update) bool {
-	switch (*u.Bot.API).(type) {
-	case *APICqhttp:
-		if (strings.Contains(u.Message.Text, fmt.Sprintf("[CQ:at,qq=%v]", u.Bot.Self.ID)) || strings.Contains(u.Message.Text, fmt.Sprintf("@%v", u.Bot.Self.NickName))) && bm.extractCommand(u) == "" {
-			return true
-		}
-	case *APITelegramBot:
-		if strings.Contains(u.Message.Text, fmt.Sprintf("@%v", u.Bot.Self.UserName)) && bm.extractCommand(u) == "" {
+	if bm.extractCommand(u) != "" {
+		return false
+	}
+
+	for _, v := range ats(u.Bot.Self) {
+		if strings.Contains(u.Message.Text, v) {
 			return true
 		}
 	}
@@ -54,15 +66,39 @@ func (bm *BotMaid) BeAt(u *Update) bool {
 }
 
 // At returns a string to mention someone in a message.
-func At(u *User) []string {
-	switch (*u.Bot.API).(type) {
-	case *APICqhttp:
-		return []string{fmt.Sprintf("[CQ:at,qq=%v]", u.ID), fmt.Sprintf("@%v", u.NickName)}
-	case *APITelegramBot:
-		return []string{fmt.Sprintf("tg://user?id=%v", u.ID), fmt.Sprintf("@%v", u.UserName)}
+func At(u *User) string {
+	return ats(u)[0]
+}
+
+// ParseUserID parses the ID of the User in the At string.
+func ParseUserID(u *User, s string) (int64, error) {
+	if u.Bot.Platform() == "QQ" {
+		if strings.HasPrefix(s, "[CQ:at,qq=") && strings.HasSuffix(s, "]") {
+			start := 10
+			end := strings.LastIndex(s, "]")
+			s = s[start:end]
+
+			id, err := strconv.ParseInt(s, 10, 64)
+			if err != nil {
+				return 0, fmt.Errorf("Invalid At string: %v", err)
+			}
+			return id, nil
+		}
 	}
 
-	return []string{fmt.Sprintf("@%v", u.ID)}
+	if u.Bot.Platform() == "Telegram" {
+		if strings.HasPrefix(s, "tg://user?id=") {
+			s = s[13:]
+
+			id, err := strconv.ParseInt(s, 10, 64)
+			if err != nil {
+				return 0, fmt.Errorf("Invalid At string: %v", err)
+			}
+			return id, nil
+		}
+	}
+
+	return 0, errors.New("Invalid At string")
 }
 
 // Reply replies a message back.

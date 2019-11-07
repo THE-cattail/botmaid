@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf16"
 )
 
 // APITelegramBot is a struct stores some basic information of the Telegram Bot API. Please search in official API document for details.
@@ -111,6 +112,24 @@ func (a *APITelegramBot) mapToUpdates(m []interface{}) ([]*Update, error) {
 						if _, ok := u["username"]; ok {
 							update.Message.Text = fmt.Sprintf("@%v", r["from"].(map[string]interface{})["username"].(string)) + " " + update.Message.Text
 						}
+					}
+				}
+
+				if _, ok := m["entities"]; ok {
+					es := m["entities"].([]map[string]interface{})
+					for i := len(es) - 1; i >= 0; i-- {
+						if e["type"].(string) != "mention" && e["type"].(string) != "text_mention" {
+							continue
+						}
+
+						offset := int(e["offset"].(int64))
+						length := int(e["length"].(int64))
+						user := e["user"].(map[string]interface{})
+
+						u16 := utf16.Encode([]rune(update.Message.Text))
+						u16 = append(u16[:offset], utf16.Encode([]rune(fmt.Sprintf("tg://user?id=%v", user["id"].(int64))))...)
+						u16 = append(u16, u16[offset+length:]...)
+						update.Message.Text = string(utf16.Decode(u16))
 					}
 				}
 			}
