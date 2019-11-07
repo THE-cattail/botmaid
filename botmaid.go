@@ -302,7 +302,7 @@ func (bm *BotMaid) startBot() {
 							continue
 						}
 
-						u.Message.Flag = &pflag.FlagSet{}
+						u.Message.Flag = pflag.NewFlagSet("command", pflag.ContinueOnError)
 						c.SetFlag(u)
 						u.Message.Flag.Parse(args)
 
