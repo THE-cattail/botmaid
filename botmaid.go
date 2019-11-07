@@ -145,70 +145,65 @@ func (bm *BotMaid) initCommand() {
 	})
 
 	bm.AddCommand(&Command{
+		SetFlag: func(u *Update) {
+			u.Message.Flag.BoolP("del", "d", false, "")
+			u.Message.Flag.BoolP("add", "a", false, "")
+		},
 		Do: func(u *Update) bool {
-			if bm.Redis.SIsMember("master_"+u.Bot.ID, u.Message.Flag.Args()[1]).Val() {
+			if len(u.Message.Flag.Args()) != 2 {
+				return false
+			}
+
+			is := bm.Redis.SIsMember("master_"+u.Bot.ID, u.Message.Flag.Args()[1]).Val()
+
+			del, _ := u.Message.Flag.GetBool("del")
+			if del || is {
 				bm.Redis.SRem("master_"+u.Bot.ID, u.Message.Flag.Args()[1])
 				Reply(u, fmt.Sprintf(random.String(bm.Words["unregMaster"])), u.Message.Flag.Args()[1])
 				return true
 			}
 
-			bm.Redis.SAdd("master_"+u.Bot.ID, u.Message.Flag.Args()[1])
-			Reply(u, fmt.Sprintf(random.String(bm.Words["regMaster"])), u.Message.Flag.Args()[1])
-			return true
+			add, _ := u.Message.Flag.GetBool("add")
+			if add || !is {
+				bm.Redis.SAdd("master_"+u.Bot.ID, u.Message.Flag.Args()[1])
+				Reply(u, fmt.Sprintf(random.String(bm.Words["regMaster"])), u.Message.Flag.Args()[1])
+			}
+
+			return false
 		},
-		Names:      []string{"master"},
-		ArgsMinLen: 2,
-		ArgsMaxLen: 2,
-		Master:     true,
+		Names:  []string{"master"},
+		Master: true,
 	})
 
 	bm.AddCommand(&Command{
+		SetFlag: func(u *Update) {
+			u.Message.Flag.BoolP("del", "d", false, "")
+			u.Message.Flag.BoolP("add", "a", false, "")
+		},
 		Do: func(u *Update) bool {
-			if bm.Redis.SIsMember("ban_"+u.Bot.ID, u.Message.Flag.Args()[1]).Val() {
+			if len(u.Message.Flag.Args()) != 2 {
+				return false
+			}
+
+			is := bm.Redis.SIsMember("ban_"+u.Bot.ID, u.Message.Flag.Args()[1]).Val()
+
+			del, _ := u.Message.Flag.GetBool("del")
+			if del || is {
 				bm.Redis.SRem("ban_"+u.Bot.ID, u.Message.Flag.Args()[1])
 				Reply(u, fmt.Sprintf(random.String(bm.Words["unbanUser"])), u.Message.Flag.Args()[1])
 				return true
 			}
 
-			bm.Redis.SAdd("ban_"+u.Bot.ID, u.Message.Flag.Args()[1])
-			Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"])), u.Message.Flag.Args()[1])
-			return true
-		},
-		Names:      []string{"ban"},
-		ArgsMinLen: 2,
-		ArgsMaxLen: 2,
-		Master:     true,
-	})
-
-	bm.AddCommand(&Command{
-		Do: func(u *Update) bool {
-			if len(u.Message.Flag.Args()) == 2 {
-				Reply(u, u.Message.Flag.Args()[1])
-				return true
-			} else if len(u.Message.Flag.Args()) == 4 {
-				id, err := strconv.ParseInt(u.Message.Flag.Args()[3], 10, 64)
-				if err != nil {
-					Reply(u, err.Error())
-				}
-
-				(*u.Bot.API).Push(&Update{
-					Chat: &Chat{
-						ID:   id,
-						Type: u.Message.Flag.Args()[2],
-					},
-					Message: &Message{
-						Text: u.Message.Flag.Args()[1],
-					},
-				})
-				return true
+			add, _ := u.Message.Flag.GetBool("add")
+			if add || !is {
+				bm.Redis.SAdd("ban_"+u.Bot.ID, u.Message.Flag.Args()[1])
+				Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"])), u.Message.Flag.Args()[1])
 			}
+
 			return false
 		},
-		Names:      []string{"send"},
-		ArgsMinLen: 2,
-		ArgsMaxLen: 4,
-		Help:       " <内容> (<发送对象类型> <发送对象 ID>) - 令 Bot 发送消息",
-		Master:     true,
+		Names:  []string{"ban"},
+		Master: true,
 	})
 
 	sort.Stable(CommandSlice(bm.Commands))

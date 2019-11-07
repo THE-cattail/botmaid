@@ -59,9 +59,10 @@ func (bm *BotMaid) AddCommand(c *Command) {
 }
 
 func (bm *BotMaid) extractCommand(u *Update) string {
-	if len(u.Message.Flag.Args()) == 0 {
+	if len(u.Message.Flag.Args()) < 1 {
 		return ""
 	}
+
 	s := u.Message.Flag.Args()[0]
 	for _, v := range ats(u.Bot.Self) {
 		if len(u.Message.Flag.Args()[0])-len(v) > 0 && strings.LastIndex(u.Message.Flag.Args()[0], v) == len(u.Message.Flag.Args()[0])-len(v) {
@@ -69,6 +70,7 @@ func (bm *BotMaid) extractCommand(u *Update) string {
 			break
 		}
 	}
+
 	f := false
 	for _, v := range bm.Conf.CommandPrefix {
 		if strings.HasPrefix(s, v) {
@@ -77,9 +79,11 @@ func (bm *BotMaid) extractCommand(u *Update) string {
 			break
 		}
 	}
+
 	if !f {
 		return ""
 	}
+
 	return s
 }
 
