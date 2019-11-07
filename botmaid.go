@@ -142,7 +142,7 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 func (bm *BotMaid) initCommand() {
 	bm.AddCommand(&Command{
 		Do: func(u *Update) bool {
-			if len(u.Message.Flag.Args()) == 1 {
+			if len(bm.Flags["help"].Args()) == 1 {
 				helps := []string{}
 
 				for _, v := range bm.Commands {
@@ -175,8 +175,8 @@ func (bm *BotMaid) initCommand() {
 				}
 			*/
 
-			if len(u.Message.Flag.Args()) == 2 {
-				bm.pushHelp(u, u.Message.Flag.Args()[1], true)
+			if len(bm.Flags["help"].Args()) == 2 {
+				bm.pushHelp(u, bm.Flags["help"].Args()[1], true)
 				return true
 			}
 
@@ -233,13 +233,13 @@ func (bm *BotMaid) initCommand() {
 
 	bm.AddCommand(&Command{
 		Do: func(u *Update) bool {
-			if len(u.Message.Flag.Args()) != 2 {
+			if len(bm.Flags["master"].Args()) != 2 {
 				return false
 			}
 
-			id, err := bm.ParseUserID(u, u.Message.Flag.Args()[1])
+			id, err := bm.ParseUserID(u, bm.Flags["master"].Args()[1])
 			if err != nil {
-				Reply(u, fmt.Sprintf(random.String(bm.Words["invalidUser"]), At(u.User), u.Message.Flag.Args()[1]))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["invalidUser"]), At(u.User), bm.Flags["master"].Args()[1]))
 				return true
 			}
 
@@ -247,12 +247,12 @@ func (bm *BotMaid) initCommand() {
 
 			if is {
 				bm.Redis.SRem("master_"+u.Bot.ID, id)
-				Reply(u, fmt.Sprintf(random.String(bm.Words["unregMaster"]), At(u.User), u.Message.Flag.Args()[1]))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["unregMaster"]), At(u.User), bm.Flags["master"].Args()[1]))
 				return true
 			}
 
 			bm.Redis.SAdd("master_"+u.Bot.ID, id)
-			Reply(u, fmt.Sprintf(random.String(bm.Words["regMaster"]), u.Message.Flag.Args()[1]))
+			Reply(u, fmt.Sprintf(random.String(bm.Words["regMaster"]), bm.Flags["master"].Args()[1]))
 			return true
 		},
 		Help: &Help{
@@ -267,13 +267,13 @@ func (bm *BotMaid) initCommand() {
 
 	bm.AddCommand(&Command{
 		Do: func(u *Update) bool {
-			if len(u.Message.Flag.Args()) != 2 {
+			if len(bm.Flags["master"].Args()) != 2 {
 				return false
 			}
 
-			id, err := bm.ParseUserID(u, u.Message.Flag.Args()[1])
+			id, err := bm.ParseUserID(u, bm.Flags["master"].Args()[1])
 			if err != nil {
-				Reply(u, fmt.Sprintf(random.String(bm.Words["invalidUser"]), At(u.User), u.Message.Flag.Args()[1]))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["invalidUser"]), At(u.User), bm.Flags["master"].Args()[1]))
 				return true
 			}
 
@@ -281,12 +281,12 @@ func (bm *BotMaid) initCommand() {
 
 			if is {
 				bm.Redis.SRem("ban_"+u.Bot.ID, id)
-				Reply(u, fmt.Sprintf(random.String(bm.Words["unbanUser"]), At(u.User), u.Message.Flag.Args()[1]))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["unbanUser"]), At(u.User), bm.Flags["master"].Args()[1]))
 				return true
 			}
 
 			bm.Redis.SAdd("ban_"+u.Bot.ID, id)
-			Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"]), At(u.User), u.Message.Flag.Args()[1]))
+			Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"]), At(u.User), bm.Flags["master"].Args()[1]))
 			return true
 		},
 		Help: &Help{
@@ -324,16 +324,16 @@ func (bm *BotMaid) startBot() {
 			for u := range updates {
 				up := u
 				go func(u *Update) {
-					if b.Platform() == "Telegram" && u.User.UserName != "" {
-						bm.Redis.HSet("telegramUsers", fmt.Sprintf("%v", u.User.UserName), u.User.ID)
+					if u.Message == nil {
+						return
 					}
 
 					if !u.Time.After(bm.respTime) {
 						return
 					}
 
-					if u.Message == nil {
-						return
+					if b.Platform() == "Telegram" && u.User != nil && u.User.UserName != "" {
+						bm.Redis.HSet("telegramUsers", fmt.Sprintf("%v", u.User.UserName), u.User.ID)
 					}
 
 					u.Bot = b
