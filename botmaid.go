@@ -139,18 +139,102 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 	return nil
 }
 
+// Splits the string `s` on whitespace into an initial substring up to
+// `i` runes in length and the remainder. Will go `slop` over `i` if
+// that encompasses the entire string (which allows the caller to
+// avoid short orphan words on the final line).
+func wrapN(i, slop int, s string) (string, string) {
+	if i+slop > len(s) {
+		return s, ""
+	}
+
+	w := strings.LastIndexAny(s[:i], " \t\n")
+	if w <= 0 {
+		return s, ""
+	}
+	nlPos := strings.LastIndex(s[:i], "\n")
+	if nlPos > 0 && nlPos < w {
+		return s[:nlPos], s[nlPos+1:]
+	}
+	return s[:w], s[w+1:]
+}
+
+// Wraps the string `s` to a maximum width `w` with leading indent
+// `i`. The first line is not indented (this is assumed to be done by
+// caller). Pass `w` == 0 to do no wrapping
+func wrap(i, w int, s string) string {
+	if w == 0 {
+		return strings.Replace(s, "\n", "\n"+strings.Repeat(" ", i), -1)
+	}
+
+	// space between indent i and end of line width w into which
+	// we should wrap the text.
+	wrap := w - i
+
+	var r, l string
+
+	// Not enough space for sensible wrapping. Wrap as a block on
+	// the next line instead.
+	if wrap < 24 {
+		i = 16
+		wrap = w - i
+		r += "\n" + strings.Repeat(" ", i)
+	}
+	// If still not enough space then don't even try to wrap.
+	if wrap < 24 {
+		return strings.Replace(s, "\n", r, -1)
+	}
+
+	// Try to avoid short orphan words on the final line, by
+	// allowing wrapN to go a bit over if that would fit in the
+	// remainder of the line.
+	slop := 5
+	wrap = wrap - slop
+
+	// Handle first line, which is indented by the caller (or the
+	// special case above)
+	l, s = wrapN(wrap, slop, s)
+	r = r + strings.Replace(l, "\n", "\n"+strings.Repeat(" ", i), -1)
+
+	// Now wrap the rest
+	for s != "" {
+		var t string
+
+		t, s = wrapN(wrap, slop, s)
+		r = r + "\n" + strings.Repeat(" ", i) + strings.Replace(t, "\n", "\n"+strings.Repeat(" ", i), -1)
+	}
+
+	return r
+
+}
+
 func (bm *BotMaid) initCommand() {
 	bm.AddCommand(&Command{
 		Do: func(u *Update) bool {
 			if len(bm.Flags["help"].Args()) == 1 {
 				helps := []string{}
 
+				maxlen := 0
 				for _, v := range bm.Commands {
-					if v.Help == nil || v.Help.Menu != "" {
+					if v.Help == nil || v.Help.Menu == "" {
 						continue
 					}
 
-					helps = append(helps, fmt.Sprintf("\t\t%v\t\t%v", v.Help.Menu, v.Help.Help))
+					line := "  " + v.Help.Menu + "\x00"
+
+					if len(line) > maxlen {
+						maxlen = len(line)
+					}
+
+					line += v.Help.Help
+
+					helps = append(helps, line)
+				}
+
+				for i := range helps {
+					sidx := strings.Index(helps[i], "\x00")
+					spacing := strings.Repeat(" ", maxlen-sidx)
+					helps[i] = fmt.Sprint(helps[i][:sidx], spacing, wrap(maxlen+2, 0, helps[i][sidx+1:]))
 				}
 
 				sort.Strings(helps)
@@ -164,17 +248,6 @@ func (bm *BotMaid) initCommand() {
 				return true
 			}
 
-			/*
-				hc := ""
-				if IsCommand(u, "help") && len(u.Message.Flag.Args()) == 2 {
-					hc = u.Message.Flag.Args()[1]
-				} else if IsCommand(u) && len(u.Message.Flag.Args()) == 2 && In(u.Message.Flag.Args()[1], "help") {
-					hc = bm.extractCommand(u)
-				} else {
-					return false
-				}
-			*/
-
 			if len(bm.Flags["help"].Args()) == 2 {
 				bm.pushHelp(u, bm.Flags["help"].Args()[1], true)
 				return true
@@ -187,23 +260,8 @@ func (bm *BotMaid) initCommand() {
 			Help:  random.String(bm.Words["helpHelp"]),
 			Names: []string{"help"},
 			Full: `Usage: help [COMMAND]
+
 %v`,
-		},
-		Priority: 10000,
-	})
-
-	bm.AddCommand(&Command{
-		Do: func(u *Update) bool {
-			help, _ := bm.Flags["help"].GetBool("help")
-			if !help {
-				return false
-			}
-
-			if IsCommand(u) {
-				bm.pushHelp(u, u.Message.Command, false)
-			}
-
-			return false
 		},
 		Priority: 10000,
 	})
@@ -260,6 +318,7 @@ func (bm *BotMaid) initCommand() {
 			Help:  random.String(bm.Words["masterHelp"]),
 			Names: []string{"master"},
 			Full: `Usage: master USER
+
 %v`,
 		},
 		Master: true,
@@ -294,6 +353,7 @@ func (bm *BotMaid) initCommand() {
 			Help:  random.String(bm.Words["banHelp"]),
 			Names: []string{"ban"},
 			Full: `Usage: ban USER
+
 %v`,
 		},
 		Master: true,
@@ -464,15 +524,15 @@ func New(configFile string) (*BotMaid, error) {
 
 Usage:
 
-%v%v(%v)<command> [arguments]
+%v%v(%v)*COMMAND* [ARGUMENTS]
 
 The commands are:
 %%v
 
-Use "<command> --help for more information about a command."`, "\t\t", bm.Conf.CommandPrefix[0], ListToString(bm.Conf.CommandPrefix[1:], "%v", ", ", " or ")),
+Use "help [COMMAND] for more information about a command."`, "\t\t", bm.Conf.CommandPrefix[0], ListToString(bm.Conf.CommandPrefix[1:], "%v", ", ", " or ")),
 		},
 		"undefCommand": []string{
-			"%v, the command \"%v\" is unknown, please check the spelling and the \"help\" command of this bot and retry.",
+			"%v, the command \"%v\" is unknown, please check the spelling or the \"help\" command of this bot and retry.",
 		},
 		"unregMaster": []string{
 			"%v, the master %v has been unregistered.",

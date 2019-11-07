@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// HelpMenu describes the menu item of the help.
+// Help describes the menu item of the help.
 type Help struct {
 	Menu, Help, Full string
 
@@ -32,14 +32,14 @@ func (bm *BotMaid) pushHelp(u *Update, hc string, showUndef bool) {
 			continue
 		}
 
-		s := bm.Flags[c.Help.Menu].FlagUsages()
+		s := strings.TrimSpace(fmt.Sprintf(c.Help.Full, bm.Flags[c.Help.Menu].FlagUsages()))
 
 		if s == "" {
-			Reply(u, fmt.Sprintf(random.String(bm.Words["noHelpText"])), At(u.User), u.Message.Command)
+			Reply(u, fmt.Sprintf(random.String(bm.Words["noHelpText"]), At(u.User), hc))
 			return
 		}
 
-		Reply(u, strings.TrimSpace(fmt.Sprintf(c.Help.Full, s)))
+		Reply(u, s)
 		return
 	}
 

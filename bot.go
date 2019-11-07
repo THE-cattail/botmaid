@@ -152,14 +152,12 @@ func Reply(u *Update, s ...string) (*Update, error) {
 // In checks if the element is in the slice.
 func In(a interface{}, s ...interface{}) bool {
 	if len(s) == 1 {
-		if _, ok := s[0].([]interface{}); ok {
-			for _, v := range s[0].([]interface{}) {
-				if v == a {
-					return true
-				}
+		for _, v := range s[0].([]string) {
+			if v == a {
+				return true
 			}
-			return false
 		}
+		return false
 	}
 
 	for _, v := range s {
