@@ -91,7 +91,7 @@ func ats(u *User) []string {
 	}
 
 	if u.Bot.Platform() == "Telegram" {
-		return []string{fmt.Sprintf("<a href=\"tg://user?id=%v\">%v</a>", u.NickName, u.ID), fmt.Sprintf("@%v", u.UserName)}
+		return []string{fmt.Sprintf("<a href=\"tg://user?id=%v\">%v</a>", u.ID, u.NickName), fmt.Sprintf("@%v", u.UserName)}
 	}
 
 	return []string{""}
