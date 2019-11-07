@@ -35,6 +35,17 @@ func (cs CommandSlice) Less(i, j int) bool {
 
 // AddCommand adds a command into the []Command.
 func (bm *BotMaid) AddCommand(c *Command) {
+	if c.SetFlag == nil {
+		c.SetFlag = func(_ *Update) {
+		}
+	}
+
+	if c.Do == nil {
+		c.Do = func(_ *Update) bool {
+			return false
+		}
+	}
+
 	bm.Commands = append(bm.Commands, c)
 	if c.Menu != "" {
 		for i := range bm.HelpMenus {
