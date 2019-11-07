@@ -388,7 +388,7 @@ func New(configFile string) (*BotMaid, error) {
 			fmt.Sprintf("%%v, Please use %v to call this bot.", ListToString(bm.Conf.CommandPrefix, "\"%v\"", ", ", " or ")),
 		},
 		"undefCommand": []string{
-			"Unknown command %v.",
+			"Unknown command \"%v\".",
 		},
 		"unregMaster": []string{
 			"The master %v has been unregistered.",
@@ -403,7 +403,7 @@ func New(configFile string) (*BotMaid, error) {
 			"The user %v has been banned.",
 		},
 		"noPermission": []string{
-			"%v, you don't have permission to use the command %v.",
+			"%v, you don't have permission to use the command \"%v\".",
 		},
 		"invalidParameters": []string{
 			"The parameters of the command \"%v\" is invalid.",

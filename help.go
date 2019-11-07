@@ -153,7 +153,7 @@ func (bm *BotMaid) help2(u *Update) bool {
 			}
 
 			if !bm.IsMaster(u.User) && c.Master {
-				Reply(u, fmt.Sprintf(random.String(bm.Words["noPermission"])), u.User.NickName, u.Message.Command)
+				Reply(u, fmt.Sprintf(random.String(bm.Words["noPermission"]), u.User.NickName, u.Message.Command))
 				return true
 			}
 		}
