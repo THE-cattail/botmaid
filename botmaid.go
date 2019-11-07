@@ -31,14 +31,20 @@ type botMaidConfig struct {
 
 // BotMaid includes a slice of Bot and some methods to use them.
 type BotMaid struct {
-	Bots      map[string]*Bot
-	Conf      *botMaidConfig
-	Redis     *redis.Client
-	Commands  CommandSlice
-	Timers    []Timer
-	HelpMenus []HelpMenu
-	Words     map[string][]string
-	RespTime  time.Time
+	Bots map[string]*Bot
+
+	Conf *botMaidConfig
+
+	Redis *redis.Client
+
+	Commands CommandSlice
+	Timers   []*Timer
+	Helps    []*Help
+	Flags    map[string]*pflag.FlagSet
+
+	Words map[string][]string
+
+	respTime time.Time
 }
 
 func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
@@ -135,24 +141,97 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 
 func (bm *BotMaid) initCommand() {
 	bm.AddCommand(&Command{
-		SetFlag: func(u *Update) {
+		Do: func(u *Update) bool {
+			if len(u.Message.Flag.Args()) == 1 {
+				helps := []string{}
+
+				for _, v := range bm.Commands {
+					if v.Help == nil && v.Help.Menu != "" {
+						continue
+					}
+
+					helps = append(helps, fmt.Sprintf("\t\t%v\t\t%v", v.Help.Menu, v.Help.Help))
+				}
+
+				sort.Strings(helps)
+
+				s := ""
+				for _, v := range helps {
+					s += "\n" + v
+				}
+
+				Reply(u, fmt.Sprintf(random.String(bm.Words["selfIntro"]), At(u.Bot.Self), u.Bot.Platform(), s))
+				return true
+			}
+
+			/*
+				hc := ""
+				if IsCommand(u, "help") && len(u.Message.Flag.Args()) == 2 {
+					hc = u.Message.Flag.Args()[1]
+				} else if IsCommand(u) && len(u.Message.Flag.Args()) == 2 && In(u.Message.Flag.Args()[1], "help") {
+					hc = bm.extractCommand(u)
+				} else {
+					return false
+				}
+			*/
+
+			if len(u.Message.Flag.Args()) == 2 {
+				bm.pushHelp(u, u.Message.Flag.Args()[1], true)
+				return true
+			}
+
+			return false
 		},
-		Do:       bm.help,
+		Help: &Help{
+			Menu:  "help",
+			Help:  random.String(bm.Words["helpHelp"]),
+			Names: []string{"help"},
+			Full: `Usage: help [COMMAND]
+%v`,
+		},
 		Priority: 10000,
 	})
 
 	bm.AddCommand(&Command{
-		SetFlag: func(u *Update) {
+		Do: func(u *Update) bool {
+			help, _ := bm.Flags["help"].GetBool("help")
+			if !help {
+				return false
+			}
+
+			if IsCommand(u) {
+				bm.pushHelp(u, u.Message.Command, false)
+			}
+
+			return false
 		},
-		Do:       bm.help2,
+		Priority: 10000,
+	})
+
+	bm.AddCommand(&Command{
+		Do: func(u *Update) bool {
+			if IsCommand(u) {
+				for _, c := range bm.Commands {
+					if c.Help != nil && len(c.Help.Names) != 0 && !IsCommand(u, c.Help.Names) {
+						continue
+					}
+
+					if !bm.IsMaster(u.User) && c.Master {
+						Reply(u, fmt.Sprintf(random.String(bm.Words["noPermission"]), At(u.User), u.Message.Command))
+						return true
+					}
+				}
+
+				bm.pushHelp(u, u.Message.Command, false)
+				return true
+			}
+
+			return false
+		},
 		Priority: -10000,
 	})
 
 	bm.AddCommand(&Command{
-		SetFlag: func(u *Update) {
-			u.Message.Flag.BoolP("del", "d", false, "")
-			u.Message.Flag.BoolP("add", "a", false, "")
-		},
 		Do: func(u *Update) bool {
 			if len(u.Message.Flag.Args()) != 2 {
 				return false
@@ -166,30 +245,27 @@ func (bm *BotMaid) initCommand() {
 
 			is := bm.Redis.SIsMember("master_"+u.Bot.ID, id).Val()
 
-			del, _ := u.Message.Flag.GetBool("del")
-			if del || is {
+			if is {
 				bm.Redis.SRem("master_"+u.Bot.ID, id)
 				Reply(u, fmt.Sprintf(random.String(bm.Words["unregMaster"]), At(u.User), u.Message.Flag.Args()[1]))
 				return true
 			}
 
-			add, _ := u.Message.Flag.GetBool("add")
-			if add || !is {
-				bm.Redis.SAdd("master_"+u.Bot.ID, id)
-				Reply(u, fmt.Sprintf(random.String(bm.Words["regMaster"]), u.Message.Flag.Args()[1]))
-			}
-
-			return false
+			bm.Redis.SAdd("master_"+u.Bot.ID, id)
+			Reply(u, fmt.Sprintf(random.String(bm.Words["regMaster"]), u.Message.Flag.Args()[1]))
+			return true
 		},
-		Names:  []string{"master"},
+		Help: &Help{
+			Menu:  "master",
+			Help:  random.String(bm.Words["masterHelp"]),
+			Names: []string{"master"},
+			Full: `Usage: master USER
+%v`,
+		},
 		Master: true,
 	})
 
 	bm.AddCommand(&Command{
-		SetFlag: func(u *Update) {
-			u.Message.Flag.BoolP("del", "d", false, "")
-			u.Message.Flag.BoolP("add", "a", false, "")
-		},
 		Do: func(u *Update) bool {
 			if len(u.Message.Flag.Args()) != 2 {
 				return false
@@ -203,22 +279,23 @@ func (bm *BotMaid) initCommand() {
 
 			is := bm.Redis.SIsMember("ban_"+u.Bot.ID, id).Val()
 
-			del, _ := u.Message.Flag.GetBool("del")
-			if del || is {
+			if is {
 				bm.Redis.SRem("ban_"+u.Bot.ID, id)
 				Reply(u, fmt.Sprintf(random.String(bm.Words["unbanUser"]), At(u.User), u.Message.Flag.Args()[1]))
 				return true
 			}
 
-			add, _ := u.Message.Flag.GetBool("add")
-			if add || !is {
-				bm.Redis.SAdd("ban_"+u.Bot.ID, id)
-				Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"]), At(u.User), u.Message.Flag.Args()[1]))
-			}
-
-			return false
+			bm.Redis.SAdd("ban_"+u.Bot.ID, id)
+			Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"]), At(u.User), u.Message.Flag.Args()[1]))
+			return true
 		},
-		Names:  []string{"ban"},
+		Help: &Help{
+			Menu:  "ban",
+			Help:  random.String(bm.Words["banHelp"]),
+			Names: []string{"ban"},
+			Full: `Usage: ban USER
+%v`,
+		},
 		Master: true,
 	})
 
@@ -251,17 +328,17 @@ func (bm *BotMaid) startBot() {
 						bm.Redis.HSet("telegramUsers", fmt.Sprintf("%v", u.User.UserName), u.User.ID)
 					}
 
-					u.Bot = b
-					if u.User != nil {
-						u.User.Bot = b
-					}
-
-					if !u.Time.After(bm.RespTime) {
+					if !u.Time.After(bm.respTime) {
 						return
 					}
 
 					if u.Message == nil {
 						return
+					}
+
+					u.Bot = b
+					if u.User != nil {
+						u.User.Bot = b
 					}
 
 					if bm.IsBanned(u.User) {
@@ -284,27 +361,23 @@ func (bm *BotMaid) startBot() {
 						Reply(u, fmt.Sprintf(random.String(bm.Words["invalidParameters"])), At(u.User), u.Message.Text)
 						return
 					}
-					u.Message.Args = args
 
 					u.Message.Command = bm.extractCommand(u)
 
 					for _, c := range bm.Commands {
-						if !bm.IsMaster(u.User) && c.Master {
-							continue
+						if c.Help != nil && c.Help.Menu != "" {
+							bm.Flags[c.Help.Menu].Parse(args)
 						}
-						if len(c.Names) != 0 && !IsCommand(u, c.Names) {
-							continue
-						}
-						if c.ArgsMinLen != 0 && len(u.Message.Flag.Args()) < c.ArgsMinLen {
-							continue
-						}
-						if c.ArgsMaxLen != 0 && len(u.Message.Flag.Args()) > c.ArgsMaxLen {
+					}
+
+					for _, c := range bm.Commands {
+						if c.Help != nil && len(c.Help.Names) != 0 && !IsCommand(u, c.Help.Names) {
 							continue
 						}
 
-						u.Message.Flag = pflag.NewFlagSet("command", pflag.ContinueOnError)
-						c.SetFlag(u)
-						u.Message.Flag.Parse(args)
+						if !bm.IsMaster(u.User) && c.Master {
+							continue
+						}
 
 						if c.Do(u) {
 							break
@@ -323,7 +396,7 @@ func New(configFile string) (*BotMaid, error) {
 		Conf: &botMaidConfig{
 			Log: true,
 		},
-		RespTime: time.Now(),
+		respTime: time.Now(),
 	}
 
 	conf, err := toml.LoadFile(configFile)
@@ -385,7 +458,16 @@ func New(configFile string) (*BotMaid, error) {
 
 	bm.Words = map[string][]string{
 		"selfIntro": []string{
-			fmt.Sprintf("%%v, Please use %v to call this bot.", ListToString(bm.Conf.CommandPrefix, "\"%v\"", ", ", " or ")),
+			fmt.Sprintf(`%%v is a bot for %%v.
+
+Usage:
+
+%v%v(%v)<command> [arguments]
+
+The commands are:
+%%v
+
+Use "<command> --help for more information about a command."`, "\t\t", bm.Conf.CommandPrefix[0], ListToString(bm.Conf.CommandPrefix[1:], "%v", ", ", " or ")),
 		},
 		"undefCommand": []string{
 			"%v, the command \"%v\" is unknown, please check the spelling and the \"help\" command of this bot and retry.",
@@ -413,6 +495,15 @@ func New(configFile string) (*BotMaid, error) {
 		},
 		"invalidUser": []string{
 			"%v, the user \"%v\" is invalid or not exist.",
+		},
+		"helpHelp": []string{
+			"display help menus",
+		},
+		"masterHelp": []string{
+			"add/remove masters",
+		},
+		"banHelp": []string{
+			"ban/unban users",
 		},
 	}
 

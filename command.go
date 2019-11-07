@@ -2,17 +2,19 @@ package botmaid
 
 import (
 	"strings"
+
+	"github.com/spf13/pflag"
 )
 
 // Command is a func with priority value so that we can sort some Commands to make them in a specific order.
 type Command struct {
-	SetFlag                func(*Update)
-	Do                     func(*Update) bool
-	Priority               int
-	Menu, MenuText, Help   string
-	Names                  []string
-	ArgsMinLen, ArgsMaxLen int
-	Master                 bool
+	Do func(*Update) bool
+
+	Priority int
+
+	Help *Help
+
+	Master bool
 }
 
 // CommandSlice is a slice of Command that could be sort.
@@ -35,38 +37,22 @@ func (cs CommandSlice) Less(i, j int) bool {
 
 // AddCommand adds a command into the []Command.
 func (bm *BotMaid) AddCommand(c *Command) {
-	if c.SetFlag == nil {
-		c.SetFlag = func(_ *Update) {
-		}
-	}
-
 	if c.Do == nil {
 		c.Do = func(_ *Update) bool {
 			return false
 		}
 	}
 
-	bm.Commands = append(bm.Commands, c)
-	if c.Menu != "" {
-		for i := range bm.HelpMenus {
-			if bm.HelpMenus[i].Menu == c.Menu {
-				if c.MenuText != "" {
-					bm.HelpMenus[i].Help = c.MenuText
-				}
-				for _, v := range c.Names {
-					if !In(v, bm.HelpMenus[i].Names) {
-						bm.HelpMenus[i].Names = append(bm.HelpMenus[i].Names, v)
-					}
-				}
-				return
-			}
+	if c.Help != nil && c.Help.Menu != "" {
+		if c.Help.SetFlag == nil {
+			c.Help.SetFlag = func(flag *pflag.FlagSet) {}
 		}
-		bm.HelpMenus = append(bm.HelpMenus, HelpMenu{
-			Menu:  c.Menu,
-			Help:  c.MenuText,
-			Names: c.Names,
-		})
+
+		bm.Flags[c.Help.Menu] = pflag.NewFlagSet(c.Help.Menu, pflag.ContinueOnError)
+		c.Help.SetFlag(bm.Flags[c.Help.Menu])
 	}
+
+	bm.Commands = append(bm.Commands, c)
 }
 
 func (bm *BotMaid) extractCommand(u *Update) string {

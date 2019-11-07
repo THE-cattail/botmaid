@@ -13,37 +13,37 @@ type Timer struct {
 }
 
 // AddTimer adds a timer into the []Timer.
-func (bm *BotMaid) AddTimer(t Timer) {
+func (bm *BotMaid) AddTimer(t *Timer) {
 	bm.Timers = append(bm.Timers, t)
 }
 
 func (bm *BotMaid) loadTimers() {
-	for i := range bm.Timers {
-		v := bm.Timers[i]
-		next := v.Start
+	for _, t := range bm.Timers {
+		tm := t
+		next := tm.Start
 
-		if v.Frequency == 0 && time.Now().After(next) {
+		if tm.Frequency == 0 && time.Now().After(next) {
 			continue
 		}
 
-		go func(v *Timer) {
+		go func(t *Timer) {
 			for {
 				for time.Now().After(next) {
-					next = next.Add(v.Frequency)
+					next = next.Add(t.Frequency)
 				}
 
-				if !v.End.IsZero() && next.After(v.End) {
+				if !t.End.IsZero() && next.After(t.End) {
 					break
 				}
 
 				timer := time.NewTimer(-time.Since(next))
 				<-timer.C
-				v.Do()
+				t.Do()
 
-				if v.Frequency == 0 {
+				if t.Frequency == 0 {
 					break
 				}
 			}
-		}(&bm.Timers[i])
+		}(tm)
 	}
 }
