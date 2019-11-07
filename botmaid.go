@@ -247,7 +247,9 @@ func (bm *BotMaid) startBot() {
 			for u := range updates {
 				up := u
 				go func(u *Update) {
-					bm.Redis.HSet("telegramUsers", fmt.Sprintf("%v", u.User.UserName), u.User.ID)
+					if u.Bot.Platform() == "Telegram" && u.User.UserName != "" {
+						bm.Redis.HSet("telegramUsers", fmt.Sprintf("%v", u.User.UserName), u.User.ID)
+					}
 
 					u.Bot = b
 					if u.User != nil {
