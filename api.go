@@ -57,6 +57,7 @@ type Message struct {
 	Image string
 	Audio string
 
+	Args    []string
 	Command string
 
 	Flag *pflag.FlagSet

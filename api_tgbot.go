@@ -116,20 +116,23 @@ func (a *APITelegramBot) mapToUpdates(m []interface{}) ([]*Update, error) {
 				}
 
 				if _, ok := m["entities"]; ok {
-					es := m["entities"].([]map[string]interface{})
+					es := m["entities"].([]interface{})
 					for i := len(es) - 1; i >= 0; i-- {
-						if e["type"].(string) != "mention" && e["type"].(string) != "text_mention" {
+						e := es[i].(map[string]interface{})
+						if e["type"].(string) != "text_mention" {
 							continue
 						}
 
-						offset := int(e["offset"].(int64))
-						length := int(e["length"].(int64))
-						user := e["user"].(map[string]interface{})
+						if e["user"] != nil {
+							offset := int(e["offset"].(float64))
+							length := int(e["length"].(float64))
+							user := e["user"].(map[string]interface{})
 
-						u16 := utf16.Encode([]rune(update.Message.Text))
-						u16 = append(u16[:offset], utf16.Encode([]rune(fmt.Sprintf("tg://user?id=%v", user["id"].(int64))))...)
-						u16 = append(u16, u16[offset+length:]...)
-						update.Message.Text = string(utf16.Decode(u16))
+							u16 := utf16.Encode([]rune(update.Message.Text))
+							t := append(u16[:offset], utf16.Encode([]rune(fmt.Sprintf("tg://user?id=%v", int64(user["id"].(float64)))))...)
+							u16 = append(t, u16[offset+length:]...)
+							update.Message.Text = string(utf16.Decode(u16))
+						}
 					}
 				}
 			}

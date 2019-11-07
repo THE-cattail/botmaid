@@ -38,9 +38,50 @@ func (bm *BotMaid) IsBanned(u *User) bool {
 	return bm.Redis.SIsMember("ban_"+u.Bot.ID, u.ID).Val()
 }
 
+// ParseUserID parses the ID of the User in the At string.
+func (bm *BotMaid) ParseUserID(u *Update, s string) (int64, error) {
+	if u.Bot.Platform() == "QQ" {
+		if strings.HasPrefix(s, "[CQ:at,qq=") && strings.HasSuffix(s, "]") {
+			start := 10
+			end := strings.LastIndex(s, "]")
+			s = s[start:end]
+
+			id, err := strconv.ParseInt(s, 10, 64)
+			if err != nil {
+				return 0, fmt.Errorf("Invalid At string: %v", err)
+			}
+			return id, nil
+		}
+	}
+
+	if u.Bot.Platform() == "Telegram" {
+		if strings.HasPrefix(s, "tg://user?id=") {
+			s = s[13:]
+
+			id, err := strconv.ParseInt(s, 10, 64)
+			if err != nil {
+				return 0, fmt.Errorf("Invalid At string: %v", err)
+			}
+			return id, nil
+		}
+
+		if strings.HasPrefix(s, "@") {
+			s = bm.Redis.HGet("telegramUsers", s[1:]).Val()
+
+			id, err := strconv.ParseInt(s, 10, 64)
+			if err != nil {
+				return 0, fmt.Errorf("Invalid At string: %v", err)
+			}
+			return id, nil
+		}
+	}
+
+	return 0, errors.New("Invalid At string")
+}
+
 func ats(u *User) []string {
 	if u.Bot.Platform() == "QQ" {
-		return []string{fmt.Sprintf("[CQ:at,qq=%v]", u.ID), fmt.Sprintf("@%v", u.NickName)}
+		return []string{fmt.Sprintf("[CQ:at,qq=%v]", u.ID)}
 	}
 
 	if u.Bot.Platform() == "Telegram" {
@@ -68,37 +109,6 @@ func (bm *BotMaid) BeAt(u *Update) bool {
 // At returns a string to mention someone in a message.
 func At(u *User) string {
 	return ats(u)[0]
-}
-
-// ParseUserID parses the ID of the User in the At string.
-func ParseUserID(u *User, s string) (int64, error) {
-	if u.Bot.Platform() == "QQ" {
-		if strings.HasPrefix(s, "[CQ:at,qq=") && strings.HasSuffix(s, "]") {
-			start := 10
-			end := strings.LastIndex(s, "]")
-			s = s[start:end]
-
-			id, err := strconv.ParseInt(s, 10, 64)
-			if err != nil {
-				return 0, fmt.Errorf("Invalid At string: %v", err)
-			}
-			return id, nil
-		}
-	}
-
-	if u.Bot.Platform() == "Telegram" {
-		if strings.HasPrefix(s, "tg://user?id=") {
-			s = s[13:]
-
-			id, err := strconv.ParseInt(s, 10, 64)
-			if err != nil {
-				return 0, fmt.Errorf("Invalid At string: %v", err)
-			}
-			return id, nil
-		}
-	}
-
-	return 0, errors.New("Invalid At string")
 }
 
 // Reply replies a message back.

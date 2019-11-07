@@ -135,11 +135,15 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 
 func (bm *BotMaid) initCommand() {
 	bm.AddCommand(&Command{
+		SetFlag: func(u *Update) {
+		},
 		Do:       bm.help,
 		Priority: 10000,
 	})
 
 	bm.AddCommand(&Command{
+		SetFlag: func(u *Update) {
+		},
 		Do:       bm.help2,
 		Priority: -10000,
 	})
@@ -154,19 +158,25 @@ func (bm *BotMaid) initCommand() {
 				return false
 			}
 
-			is := bm.Redis.SIsMember("master_"+u.Bot.ID, u.Message.Flag.Args()[1]).Val()
+			id, err := bm.ParseUserID(u, u.Message.Flag.Args()[1])
+			if err != nil {
+				Reply(u, fmt.Sprintf(random.String(bm.Words["invalidUser"]), u.Message.Flag.Args()[1]))
+				return true
+			}
+
+			is := bm.Redis.SIsMember("master_"+u.Bot.ID, id).Val()
 
 			del, _ := u.Message.Flag.GetBool("del")
 			if del || is {
-				bm.Redis.SRem("master_"+u.Bot.ID, u.Message.Flag.Args()[1])
-				Reply(u, fmt.Sprintf(random.String(bm.Words["unregMaster"])), u.Message.Flag.Args()[1])
+				bm.Redis.SRem("master_"+u.Bot.ID, id)
+				Reply(u, fmt.Sprintf(random.String(bm.Words["unregMaster"]), id))
 				return true
 			}
 
 			add, _ := u.Message.Flag.GetBool("add")
 			if add || !is {
-				bm.Redis.SAdd("master_"+u.Bot.ID, u.Message.Flag.Args()[1])
-				Reply(u, fmt.Sprintf(random.String(bm.Words["regMaster"])), u.Message.Flag.Args()[1])
+				bm.Redis.SAdd("master_"+u.Bot.ID, id)
+				Reply(u, fmt.Sprintf(random.String(bm.Words["regMaster"]), id))
 			}
 
 			return false
@@ -185,19 +195,25 @@ func (bm *BotMaid) initCommand() {
 				return false
 			}
 
-			is := bm.Redis.SIsMember("ban_"+u.Bot.ID, u.Message.Flag.Args()[1]).Val()
+			id, err := bm.ParseUserID(u, u.Message.Flag.Args()[1])
+			if err != nil {
+				Reply(u, fmt.Sprintf(random.String(bm.Words["invalidUser"])))
+				return true
+			}
+
+			is := bm.Redis.SIsMember("ban_"+u.Bot.ID, id).Val()
 
 			del, _ := u.Message.Flag.GetBool("del")
 			if del || is {
-				bm.Redis.SRem("ban_"+u.Bot.ID, u.Message.Flag.Args()[1])
-				Reply(u, fmt.Sprintf(random.String(bm.Words["unbanUser"])), u.Message.Flag.Args()[1])
+				bm.Redis.SRem("ban_"+u.Bot.ID, id)
+				Reply(u, fmt.Sprintf(random.String(bm.Words["unbanUser"]), id))
 				return true
 			}
 
 			add, _ := u.Message.Flag.GetBool("add")
 			if add || !is {
-				bm.Redis.SAdd("ban_"+u.Bot.ID, u.Message.Flag.Args()[1])
-				Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"])), u.Message.Flag.Args()[1])
+				bm.Redis.SAdd("ban_"+u.Bot.ID, id)
+				Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"]), id))
 			}
 
 			return false
@@ -231,6 +247,8 @@ func (bm *BotMaid) startBot() {
 			for u := range updates {
 				up := u
 				go func(u *Update) {
+					bm.Redis.HSet("telegramUsers", fmt.Sprintf("%v", u.User.UserName), u.User.ID)
+
 					u.Bot = b
 					if u.User != nil {
 						u.User.Bot = b
@@ -264,6 +282,7 @@ func (bm *BotMaid) startBot() {
 						Reply(u, fmt.Sprintf(random.String(bm.Words["invalidParameters"])), u.Message.Text)
 						return
 					}
+					u.Message.Args = args
 
 					u.Message.Command = bm.extractCommand(u)
 
@@ -389,6 +408,9 @@ func New(configFile string) (*BotMaid, error) {
 		},
 		"noHelpText": []string{
 			"The command \"%v\" has no help text.",
+		},
+		"invalidUser": []string{
+			"The user \"%v\" is invalid or not exist.",
 		},
 	}
 
