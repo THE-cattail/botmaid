@@ -128,8 +128,16 @@ func (a *APITelegramBot) mapToUpdates(m []interface{}) ([]*Update, error) {
 							length := int(e["length"].(float64))
 							user := e["user"].(map[string]interface{})
 
+							nickName := user["first_name"].(string)
+							if _, ok := user["last_name"]; ok {
+								nickName += " " + user["last_name"].(string)
+							}
+							strings.ReplaceAll(nickName, "\\", "\\\\")
+							strings.ReplaceAll(nickName, "'", "\\'")
+							strings.ReplaceAll(nickName, "\"", "\\\"")
+
 							u16 := utf16.Encode([]rune(update.Message.Text))
-							t := append(u16[:offset], utf16.Encode([]rune(fmt.Sprintf("tg://user?id=%v", int64(user["id"].(float64)))))...)
+							t := append(u16[:offset], utf16.Encode([]rune(fmt.Sprintf("\"<a href=\\\"tg://user?id=%v\\\">%v</a>\"", int64(user["id"].(float64)), nickName)))...)
 							u16 = append(t, u16[offset+length:]...)
 							update.Message.Text = string(utf16.Decode(u16))
 						}
@@ -408,8 +416,9 @@ func (a *APITelegramBot) Push(update *Update) (*Update, error) {
 	}
 
 	msg, err := a.API("sendMessage", map[string]interface{}{
-		"chat_id": update.Chat.ID,
-		"text":    update.Message.Text,
+		"chat_id":    update.Chat.ID,
+		"text":       update.Message.Text,
+		"parse_mode": "HTML",
 	})
 	if err != nil {
 		return nil, fmt.Errorf("Send text message: %v", err)

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 // Bot includes some information of a bot.
@@ -55,14 +57,18 @@ func (bm *BotMaid) ParseUserID(u *Update, s string) (int64, error) {
 	}
 
 	if u.Bot.Platform() == "Telegram" {
-		if strings.HasPrefix(s, "tg://user?id=") {
-			s = s[13:]
+		doc, err := goquery.NewDocumentFromReader(strings.NewReader(s))
+		if err == nil {
+			s := doc.Find("a").AttrOr("href", "")
+			if strings.HasPrefix(s, "tg://user?id=") {
+				s = s[13:]
 
-			id, err := strconv.ParseInt(s, 10, 64)
-			if err != nil {
-				return 0, fmt.Errorf("Invalid At string: %v", err)
+				id, err := strconv.ParseInt(s, 10, 64)
+				if err != nil {
+					return 0, fmt.Errorf("Invalid At string: %v", err)
+				}
+				return id, nil
 			}
-			return id, nil
 		}
 
 		if strings.HasPrefix(s, "@") {
@@ -85,7 +91,7 @@ func ats(u *User) []string {
 	}
 
 	if u.Bot.Platform() == "Telegram" {
-		return []string{fmt.Sprintf("tg://user?id=%v", u.ID), fmt.Sprintf("@%v", u.UserName)}
+		return []string{fmt.Sprintf("<a href=\"tg://user?id=%v\">%v</a>", u.NickName, u.ID), fmt.Sprintf("@%v", u.UserName)}
 	}
 
 	return []string{""}
