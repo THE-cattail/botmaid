@@ -396,6 +396,7 @@ func New(configFile string) (*BotMaid, error) {
 		Conf: &botMaidConfig{
 			Log: true,
 		},
+		Flags:    map[string]*pflag.FlagSet{},
 		respTime: time.Now(),
 	}
 
