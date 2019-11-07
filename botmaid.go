@@ -160,7 +160,7 @@ func (bm *BotMaid) initCommand() {
 
 			id, err := bm.ParseUserID(u, u.Message.Flag.Args()[1])
 			if err != nil {
-				Reply(u, fmt.Sprintf(random.String(bm.Words["invalidUser"]), u.Message.Flag.Args()[1]))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["invalidUser"]), At(u.User), u.Message.Flag.Args()[1]))
 				return true
 			}
 
@@ -169,7 +169,7 @@ func (bm *BotMaid) initCommand() {
 			del, _ := u.Message.Flag.GetBool("del")
 			if del || is {
 				bm.Redis.SRem("master_"+u.Bot.ID, id)
-				Reply(u, fmt.Sprintf(random.String(bm.Words["unregMaster"]), u.Message.Flag.Args()[1]))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["unregMaster"]), At(u.User), u.Message.Flag.Args()[1]))
 				return true
 			}
 
@@ -197,7 +197,7 @@ func (bm *BotMaid) initCommand() {
 
 			id, err := bm.ParseUserID(u, u.Message.Flag.Args()[1])
 			if err != nil {
-				Reply(u, fmt.Sprintf(random.String(bm.Words["invalidUser"])))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["invalidUser"]), At(u.User), u.Message.Flag.Args()[1]))
 				return true
 			}
 
@@ -206,14 +206,14 @@ func (bm *BotMaid) initCommand() {
 			del, _ := u.Message.Flag.GetBool("del")
 			if del || is {
 				bm.Redis.SRem("ban_"+u.Bot.ID, id)
-				Reply(u, fmt.Sprintf(random.String(bm.Words["unbanUser"]), u.Message.Flag.Args()[1]))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["unbanUser"]), At(u.User), u.Message.Flag.Args()[1]))
 				return true
 			}
 
 			add, _ := u.Message.Flag.GetBool("add")
 			if add || !is {
 				bm.Redis.SAdd("ban_"+u.Bot.ID, id)
-				Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"]), u.Message.Flag.Args()[1]))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"]), At(u.User), u.Message.Flag.Args()[1]))
 			}
 
 			return false
@@ -281,7 +281,7 @@ func (bm *BotMaid) startBot() {
 
 					args, err := shlex.Split(u.Message.Text)
 					if err != nil {
-						Reply(u, fmt.Sprintf(random.String(bm.Words["invalidParameters"])), u.Message.Text)
+						Reply(u, fmt.Sprintf(random.String(bm.Words["invalidParameters"])), At(u.User), u.Message.Text)
 						return
 					}
 					u.Message.Args = args
@@ -388,31 +388,31 @@ func New(configFile string) (*BotMaid, error) {
 			fmt.Sprintf("%%v, Please use %v to call this bot.", ListToString(bm.Conf.CommandPrefix, "\"%v\"", ", ", " or ")),
 		},
 		"undefCommand": []string{
-			"Unknown command \"%v\".",
+			"%v, the command \"%v\" is unknown, please check the spelling and the \"help\" command of this bot and retry.",
 		},
 		"unregMaster": []string{
-			"The master %v has been unregistered.",
+			"%v, the master %v has been unregistered.",
 		},
 		"regMaster": []string{
-			"The user %v has been registered as master.",
+			"%v, the user %v has been registered as master.",
 		},
 		"unbanUser": []string{
-			"The user %v has been unbanned.",
+			"%v, the user %v has been unbanned.",
 		},
 		"banUser": []string{
-			"The user %v has been banned.",
+			"%v, the user %v has been banned.",
 		},
 		"noPermission": []string{
 			"%v, you don't have permission to use the command \"%v\".",
 		},
 		"invalidParameters": []string{
-			"The parameters of the command \"%v\" is invalid.",
+			"%v, the parameters of the command \"%v\" is invalid.",
 		},
 		"noHelpText": []string{
-			"The command \"%v\" has no help text.",
+			"%v, the command \"%v\" has no help text.",
 		},
 		"invalidUser": []string{
-			"The user \"%v\" is invalid or not exist.",
+			"%v, the user \"%v\" is invalid or not exist.",
 		},
 	}
 

@@ -3,6 +3,7 @@ package botmaid
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/catsworld/botmaid/random"
 )
@@ -36,6 +37,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, showUndef bool) {
 				s = s[:len(s)-1]
 			}
 
+			s = At(u.User) + "\n" + s
 			Reply(u, s)
 			return
 		}
@@ -63,16 +65,15 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, showUndef bool) {
 	}
 
 	if !dontknow {
-		if s != "" {
-			if s[len(s)-1] == '\n' {
-				s = s[:len(s)-1]
-			}
+		s = strings.TrimSpace(s)
 
+		if s != "" {
+			s = At(u.User) + "\n" + s
 			Reply(u, s)
 			return
 		}
 
-		Reply(u, fmt.Sprintf(random.String(bm.Words["noHelpText"])), u.Message.Command)
+		Reply(u, fmt.Sprintf(random.String(bm.Words["noHelpText"])), At(u.User), u.Message.Command)
 		return
 	}
 
@@ -80,7 +81,7 @@ func (bm *BotMaid) pushHelp(hc string, u *Update, showUndef bool) {
 		return
 	}
 
-	Reply(u, fmt.Sprintf(random.String(bm.Words["undefCommand"]), hc))
+	Reply(u, fmt.Sprintf(random.String(bm.Words["undefCommand"]), At(u.User), hc))
 }
 
 func (bm *BotMaid) help(u *Update) bool {
@@ -122,6 +123,7 @@ func (bm *BotMaid) help(u *Update) bool {
 			s = s[:len(s)-1]
 		}
 
+		s = At(u.User) + "\n" + s
 		Reply(u, s)
 		return true
 	}
@@ -153,7 +155,7 @@ func (bm *BotMaid) help2(u *Update) bool {
 			}
 
 			if !bm.IsMaster(u.User) && c.Master {
-				Reply(u, fmt.Sprintf(random.String(bm.Words["noPermission"]), u.User.NickName, u.Message.Command))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["noPermission"]), At(u.User), u.Message.Command))
 				return true
 			}
 		}
