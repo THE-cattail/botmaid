@@ -32,7 +32,28 @@ func (bm *BotMaid) pushHelp(u *Update, hc string, showUndef bool) {
 			continue
 		}
 
-		s := strings.TrimSpace(fmt.Sprintf(c.Help.Full, bm.Flags[c.Help.Menu].FlagUsages()))
+		lines := strings.Split(bm.Flags[c.Help.Menu].FlagUsages(), "\n")
+		s := ""
+
+		for i := range lines {
+			lines[i] = strings.TrimSpace(lines[i])
+
+			for strings.Contains(lines[i], "  ") {
+				lines[i] = strings.ReplaceAll(lines[i], "  ", "\n")
+			}
+			for strings.Contains(lines[i], "\n ") {
+				lines[i] = strings.ReplaceAll(lines[i], "\n ", "\n")
+			}
+			lines[i] = strings.Replace(lines[i], "\n", "  ", 1)
+			lines[i] = strings.ReplaceAll(lines[i], "\n", "")
+
+			if i != 0 {
+				s += "\n"
+			}
+
+			s += "  " + lines[i]
+		}
+		s = strings.TrimSpace(fmt.Sprintf(c.Help.Full, s))
 
 		if s == "" {
 			Reply(u, fmt.Sprintf(random.String(bm.Words["noHelpText"]), At(u.User), hc))
