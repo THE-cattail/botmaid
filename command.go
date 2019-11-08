@@ -43,15 +43,6 @@ func (bm *BotMaid) AddCommand(c *Command) {
 		}
 	}
 
-	if c.Help != nil && c.Help.Menu != "" {
-		if c.Help.SetFlag == nil {
-			c.Help.SetFlag = func(flag *pflag.FlagSet) {}
-		}
-
-		bm.Flags[c.Help.Menu] = pflag.NewFlagSet(c.Help.Menu, pflag.ContinueOnError)
-		c.Help.SetFlag(bm.Flags[c.Help.Menu])
-	}
-
 	bm.Commands = append(bm.Commands, c)
 }
 

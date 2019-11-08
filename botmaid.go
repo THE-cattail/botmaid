@@ -346,6 +346,13 @@ func (bm *BotMaid) startBot() {
 
 					for _, c := range bm.Commands {
 						if c.Help != nil && c.Help.Menu != "" {
+							if c.Help.SetFlag == nil {
+								c.Help.SetFlag = func(flag *pflag.FlagSet) {}
+							}
+
+							bm.Flags[c.Help.Menu] = pflag.NewFlagSet(c.Help.Menu, pflag.ContinueOnError)
+							c.Help.SetFlag(bm.Flags[c.Help.Menu])
+
 							bm.Flags[c.Help.Menu].Parse(u.Message.Args)
 						}
 					}
@@ -465,7 +472,7 @@ The commands are:
 Use "help [COMMAND] for more information about a command."`, bm.Conf.CommandPrefix[0], ListToString(bm.Conf.CommandPrefix[1:], "%v", ", ", " or ")),
 		},
 		"undefCommand": []string{
-			"%v, the command \"%v\" is unknown, please check the spelling or the \"help\" command of this bot and retry.",
+			"%v, the command \"%v\" is unknown, please retry after checking the spelling or the \"help\" command.",
 		},
 		"unregMaster": []string{
 			"%v, the master %v has been unregistered.",
@@ -492,7 +499,7 @@ Use "help [COMMAND] for more information about a command."`, bm.Conf.CommandPref
 			"%v, the user \"%v\" is invalid or not exist.",
 		},
 		"helpHelp": []string{
-			"display help menus",
+			"display help texts",
 		},
 		"masterHelp": []string{
 			"add/remove masters",

@@ -3,6 +3,7 @@ package botmaid
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -151,9 +152,10 @@ func Reply(u *Update, s ...string) (*Update, error) {
 
 // In checks if the element is in the slice.
 func In(a interface{}, s ...interface{}) bool {
-	if len(s) == 1 {
-		for _, v := range s[0].([]string) {
-			if v == a {
+	if len(s) == 1 && reflect.TypeOf(s[0]).Kind() == reflect.Slice && reflect.TypeOf(s[0]).Comparable() {
+		t := reflect.ValueOf(s[0])
+		for i := 0; i < t.Len(); i++ {
+			if t.Index(i).Interface() == a {
 				return true
 			}
 		}
