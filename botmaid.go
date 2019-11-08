@@ -210,8 +210,8 @@ func wrap(i, w int, s string) string {
 
 func (bm *BotMaid) initCommand() {
 	bm.AddCommand(&Command{
-		Do: func(u *Update) bool {
-			if len(bm.Flags["help"].Args()) == 1 {
+		Do: func(u *Update, f *pflag.FlagSet) bool {
+			if len(f.Args()) == 1 {
 				helps := []string{}
 
 				maxlen := 0
@@ -244,12 +244,12 @@ func (bm *BotMaid) initCommand() {
 					s += "\n" + v
 				}
 
-				Reply(u, fmt.Sprintf(random.String(bm.Words["selfIntro"]), At(u.Bot.Self), u.Bot.Platform(), s))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["selfIntro"]), u.Bot.Self.NickName, s))
 				return true
 			}
 
-			if len(bm.Flags["help"].Args()) == 2 {
-				bm.pushHelp(u, bm.Flags["help"].Args()[1], true)
+			if len(f.Args()) == 2 {
+				bm.pushHelp(u, f.Args()[1], true)
 				return true
 			}
 
@@ -267,7 +267,7 @@ func (bm *BotMaid) initCommand() {
 	})
 
 	bm.AddCommand(&Command{
-		Do: func(u *Update) bool {
+		Do: func(u *Update, f *pflag.FlagSet) bool {
 			if IsCommand(u) {
 				for _, c := range bm.Commands {
 					if c.Help != nil && len(c.Help.Names) != 0 && !IsCommand(u, c.Help.Names) {
@@ -290,14 +290,14 @@ func (bm *BotMaid) initCommand() {
 	})
 
 	bm.AddCommand(&Command{
-		Do: func(u *Update) bool {
-			if len(bm.Flags["master"].Args()) != 2 {
+		Do: func(u *Update, f *pflag.FlagSet) bool {
+			if len(f.Args()) != 2 {
 				return false
 			}
 
-			id, err := bm.ParseUserID(u, bm.Flags["master"].Args()[1])
+			id, err := bm.ParseUserID(u, f.Args()[1])
 			if err != nil {
-				Reply(u, fmt.Sprintf(random.String(bm.Words["invalidUser"]), At(u.User), bm.Flags["master"].Args()[1]))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["invalidUser"]), At(u.User), f.Args()[1]))
 				return true
 			}
 
@@ -305,12 +305,12 @@ func (bm *BotMaid) initCommand() {
 
 			if is {
 				bm.Redis.SRem("master_"+u.Bot.ID, id)
-				Reply(u, fmt.Sprintf(random.String(bm.Words["unregMaster"]), At(u.User), bm.Flags["master"].Args()[1]))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["unregMaster"]), At(u.User), f.Args()[1]))
 				return true
 			}
 
 			bm.Redis.SAdd("master_"+u.Bot.ID, id)
-			Reply(u, fmt.Sprintf(random.String(bm.Words["regMaster"]), bm.Flags["master"].Args()[1]))
+			Reply(u, fmt.Sprintf(random.String(bm.Words["regMaster"]), f.Args()[1]))
 			return true
 		},
 		Help: &Help{
@@ -325,14 +325,14 @@ func (bm *BotMaid) initCommand() {
 	})
 
 	bm.AddCommand(&Command{
-		Do: func(u *Update) bool {
-			if len(bm.Flags["master"].Args()) != 2 {
+		Do: func(u *Update, f *pflag.FlagSet) bool {
+			if len(f.Args()) != 2 {
 				return false
 			}
 
-			id, err := bm.ParseUserID(u, bm.Flags["master"].Args()[1])
+			id, err := bm.ParseUserID(u, f.Args()[1])
 			if err != nil {
-				Reply(u, fmt.Sprintf(random.String(bm.Words["invalidUser"]), At(u.User), bm.Flags["master"].Args()[1]))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["invalidUser"]), At(u.User), f.Args()[1]))
 				return true
 			}
 
@@ -340,12 +340,12 @@ func (bm *BotMaid) initCommand() {
 
 			if is {
 				bm.Redis.SRem("ban_"+u.Bot.ID, id)
-				Reply(u, fmt.Sprintf(random.String(bm.Words["unbanUser"]), At(u.User), bm.Flags["master"].Args()[1]))
+				Reply(u, fmt.Sprintf(random.String(bm.Words["unbanUser"]), At(u.User), f.Args()[1]))
 				return true
 			}
 
 			bm.Redis.SAdd("ban_"+u.Bot.ID, id)
-			Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"]), At(u.User), bm.Flags["master"].Args()[1]))
+			Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"]), At(u.User), f.Args()[1]))
 			return true
 		},
 		Help: &Help{
@@ -440,7 +440,7 @@ func (bm *BotMaid) startBot() {
 							continue
 						}
 
-						if c.Do(u) {
+						if ((c.Help == nil || c.Help.Menu == "") && c.Do(u, nil)) || c.Do(u, bm.Flags[c.Help.Menu]) {
 							break
 						}
 					}
@@ -520,16 +520,16 @@ func New(configFile string) (*BotMaid, error) {
 
 	bm.Words = map[string][]string{
 		"selfIntro": []string{
-			fmt.Sprintf(`%%v is a bot for %%v.
+			fmt.Sprintf(`%%v is a bot.
 
 Usage:
 
-%v%v(%v)*COMMAND* [ARGUMENTS]
+        %v(%v)*COMMAND* [ARGUMENTS]
 
 The commands are:
 %%v
 
-Use "help [COMMAND] for more information about a command."`, "\t\t", bm.Conf.CommandPrefix[0], ListToString(bm.Conf.CommandPrefix[1:], "%v", ", ", " or ")),
+Use "help [COMMAND] for more information about a command."`, bm.Conf.CommandPrefix[0], ListToString(bm.Conf.CommandPrefix[1:], "%v", ", ", " or ")),
 		},
 		"undefCommand": []string{
 			"%v, the command \"%v\" is unknown, please check the spelling or the \"help\" command of this bot and retry.",

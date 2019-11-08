@@ -8,7 +8,7 @@ import (
 
 // Command is a func with priority value so that we can sort some Commands to make them in a specific order.
 type Command struct {
-	Do func(*Update) bool
+	Do func(*Update, *pflag.FlagSet) bool
 
 	Priority int
 
@@ -38,7 +38,7 @@ func (cs CommandSlice) Less(i, j int) bool {
 // AddCommand adds a command into the []Command.
 func (bm *BotMaid) AddCommand(c *Command) {
 	if c.Do == nil {
-		c.Do = func(_ *Update) bool {
+		c.Do = func(_ *Update, _ *pflag.FlagSet) bool {
 			return false
 		}
 	}
