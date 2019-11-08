@@ -25,11 +25,13 @@ func (bm *BotMaid) pushHelp(u *Update, hc string, showUndef bool) {
 		if c.Help.Menu == "" {
 			continue
 		}
-		if c.Master && !bm.IsMaster(u.User) {
-			continue
-		}
 		if !In(hc, c.Help.Names) {
 			continue
+		}
+
+		if c.Master && !bm.IsMaster(u.User) {
+			Reply(u, fmt.Sprintf("%v", u.User.UserName))
+			return
 		}
 
 		lines := strings.Split(bm.Flags[c.Help.Menu].FlagUsages(), "\n")

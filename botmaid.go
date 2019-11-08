@@ -145,11 +145,15 @@ func (bm *BotMaid) initCommand() {
 			if len(f.Args()) == 1 {
 				helps := []string{}
 
-				for _, v := range bm.Commands {
-					if v.Help == nil || v.Help.Menu == "" {
+				for _, c := range bm.Commands {
+					if c.Help == nil || c.Help.Menu == "" {
 						continue
 					}
-					helps = append(helps, fmt.Sprintf("  %v  %v", v.Help.Menu, v.Help.Help))
+					if c.Master && !bm.IsMaster(u.User) {
+						continue
+					}
+
+					helps = append(helps, fmt.Sprintf("  %v  %v", c.Help.Menu, c.Help.Help))
 				}
 
 				sort.Strings(helps)
