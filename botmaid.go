@@ -193,7 +193,7 @@ func (bm *BotMaid) initCommand() {
 						continue
 					}
 
-					if !bm.IsMaster(u.User) && c.Master {
+					if c.Master && !bm.IsMaster(u.User) {
 						Reply(u, fmt.Sprintf(random.String(bm.Words["noPermission"]), At(u.User), u.Message.Command))
 						return true
 					}

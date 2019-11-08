@@ -30,7 +30,7 @@ func (bm *BotMaid) pushHelp(u *Update, hc string, showUndef bool) {
 		}
 
 		if c.Master && !bm.IsMaster(u.User) {
-			Reply(u, fmt.Sprintf("%v", u.User.UserName))
+			Reply(u, fmt.Sprintf(random.String(bm.Words["noPermission"]), At(u.User), hc))
 			return
 		}
 
