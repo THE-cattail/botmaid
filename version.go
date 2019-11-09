@@ -54,6 +54,7 @@ func (bm *BotMaid) VersionMasterCommandDo(u *Update, f *pflag.FlagSet) bool {
 		}
 
 		bm.Redis.Set("version", f.Args()[1], 0)
+		return true
 	}
 
 	broadcast, _ := f.GetBool("broadcast")
