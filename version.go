@@ -38,25 +38,6 @@ func (bm *BotMaid) VersionCommandDo(u *Update, f *pflag.FlagSet) bool {
 }
 
 func (bm *BotMaid) VersionMasterCommandDo(u *Update, f *pflag.FlagSet) bool {
-	if len(f.Args()) == 2 {
-		log, _ := f.GetString("log")
-		if log != "" {
-			bm.Redis.RPush("log_"+bm.Redis.Get("version").Val(), f.Args())
-			Reply(u, random.String(bm.Words["logAdded"]))
-			return true
-		}
-
-		logBM, _ := f.GetString("logbm")
-		if logBM != "" {
-			bm.Redis.RPush("logBM_"+bm.Redis.Get("version").Val(), f.Args())
-			Reply(u, random.String(bm.Words["logBMAdded"]))
-			return true
-		}
-
-		bm.Redis.Set("version", f.Args()[1], 0)
-		return true
-	}
-
 	broadcast, _ := f.GetBool("broadcast")
 	if broadcast {
 		bm.Broadcast("log", &Message{
@@ -65,7 +46,29 @@ func (bm *BotMaid) VersionMasterCommandDo(u *Update, f *pflag.FlagSet) bool {
 		return true
 	}
 
-	return false
+	flag := false
+
+	if len(f.Args()) == 2 {
+		bm.Redis.Set("version", f.Args()[1], 0)
+		Reply(u, random.String(bm.Words["versionSet"]))
+		flag = true
+	}
+
+	log, _ := f.GetString("log")
+	if log != "" {
+		bm.Redis.RPush("log_"+bm.Redis.Get("version").Val(), f.Args())
+		Reply(u, random.String(bm.Words["logAdded"]))
+		flag = true
+	}
+
+	logBM, _ := f.GetString("logbm")
+	if logBM != "" {
+		bm.Redis.RPush("logBM_"+bm.Redis.Get("version").Val(), f.Args())
+		Reply(u, random.String(bm.Words["logBMAdded"]))
+		flag = true
+	}
+
+	return flag
 }
 
 func (bm *BotMaid) VersionMasterCommandHelpSetFlag(f *pflag.FlagSet) {
