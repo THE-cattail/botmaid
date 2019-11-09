@@ -4,6 +4,7 @@ package random
 import (
 	"crypto/rand"
 	"math/big"
+	"reflect"
 )
 
 // BigInt returns a random bigInt in [x..y], with the help of crypto/rand.
@@ -35,11 +36,13 @@ func Int(x, y int) int {
 	return int(Int64(int64(x), int64(y)))
 }
 
-// String returns a random string from the string slice.
-func String(ss []string) string {
-	if len(ss) == 0 {
-		return ""
+// Slice returns a random element of a slice of empty interface variables.
+// If s is not a slice, the function will return a nil pointer.
+func Slice(s interface{}) interface{} {
+	if reflect.TypeOf(s).Kind() == reflect.Slice {
+		t := reflect.ValueOf(s)
+		return t.Index(Int(0, t.Len()-1)).Interface()
 	}
 
-	return ss[Int(0, len(ss)-1)]
+	return nil
 }

@@ -13,8 +13,6 @@ import (
 	"github.com/google/shlex"
 	"github.com/pelletier/go-toml"
 	"github.com/spf13/pflag"
-
-	"github.com/catsworld/botmaid/random"
 )
 
 type botmaidRedisConfig struct {
@@ -42,7 +40,7 @@ type BotMaid struct {
 	Helps    []*Help
 	Flags    map[string]*pflag.FlagSet
 
-	Words map[string][]string
+	Words map[string]string
 
 	respTime time.Time
 }
@@ -163,7 +161,7 @@ func (bm *BotMaid) initCommand() {
 					s += "\n" + v
 				}
 
-				Reply(u, fmt.Sprintf(random.String(bm.Words["selfIntro"]), u.Bot.Self.NickName, s))
+				Reply(u, fmt.Sprintf(bm.Words["selfIntro"], u.Bot.Self.NickName, s))
 				return true
 			}
 
@@ -176,9 +174,9 @@ func (bm *BotMaid) initCommand() {
 		},
 		Help: &Help{
 			Menu:  "help",
-			Help:  random.String(bm.Words["helpHelp"]),
+			Help:  bm.Words["helpHelp"],
 			Names: []string{"help"},
-			Full:  random.String(bm.Words["helpHelpFull"]),
+			Full:  bm.Words["helpHelpFull"],
 		},
 		Priority: 10000,
 	})
@@ -192,7 +190,7 @@ func (bm *BotMaid) initCommand() {
 					}
 
 					if c.Master && !bm.IsMaster(u.User) {
-						Reply(u, fmt.Sprintf(random.String(bm.Words["noPermission"]), At(u.User), u.Message.Command))
+						Reply(u, fmt.Sprintf(bm.Words["noPermission"], At(u.User), u.Message.Command))
 						return true
 					}
 				}
@@ -214,7 +212,7 @@ func (bm *BotMaid) initCommand() {
 
 			id, err := bm.ParseUserID(u, f.Args()[1])
 			if err != nil {
-				Reply(u, fmt.Sprintf(random.String(bm.Words["invalidUser"]), At(u.User), f.Args()[1]))
+				Reply(u, fmt.Sprintf(bm.Words["invalidUser"], At(u.User), f.Args()[1]))
 				return true
 			}
 
@@ -222,19 +220,19 @@ func (bm *BotMaid) initCommand() {
 
 			if is {
 				bm.Redis.SRem("master_"+u.Bot.ID, id)
-				Reply(u, fmt.Sprintf(random.String(bm.Words["unregMaster"]), At(u.User), f.Args()[1]))
+				Reply(u, fmt.Sprintf(bm.Words["unregMaster"], At(u.User), f.Args()[1]))
 				return true
 			}
 
 			bm.Redis.SAdd("master_"+u.Bot.ID, id)
-			Reply(u, fmt.Sprintf(random.String(bm.Words["regMaster"]), f.Args()[1]))
+			Reply(u, fmt.Sprintf(bm.Words["regMaster"], f.Args()[1]))
 			return true
 		},
 		Help: &Help{
 			Menu:  "master",
-			Help:  random.String(bm.Words["masterHelp"]),
+			Help:  bm.Words["masterHelp"],
 			Names: []string{"master"},
-			Full:  random.String(bm.Words["masterHelpFull"]),
+			Full:  bm.Words["masterHelpFull"],
 		},
 		Master: true,
 	})
@@ -247,7 +245,7 @@ func (bm *BotMaid) initCommand() {
 
 			id, err := bm.ParseUserID(u, f.Args()[1])
 			if err != nil {
-				Reply(u, fmt.Sprintf(random.String(bm.Words["invalidUser"]), At(u.User), f.Args()[1]))
+				Reply(u, fmt.Sprintf(bm.Words["invalidUser"], At(u.User), f.Args()[1]))
 				return true
 			}
 
@@ -255,19 +253,19 @@ func (bm *BotMaid) initCommand() {
 
 			if is {
 				bm.Redis.SRem("ban_"+u.Bot.ID, id)
-				Reply(u, fmt.Sprintf(random.String(bm.Words["unbanUser"]), At(u.User), f.Args()[1]))
+				Reply(u, fmt.Sprintf(bm.Words["unbanUser"], At(u.User), f.Args()[1]))
 				return true
 			}
 
 			bm.Redis.SAdd("ban_"+u.Bot.ID, id)
-			Reply(u, fmt.Sprintf(random.String(bm.Words["banUser"]), At(u.User), f.Args()[1]))
+			Reply(u, fmt.Sprintf(bm.Words["banUser"], At(u.User), f.Args()[1]))
 			return true
 		},
 		Help: &Help{
 			Menu:  "ban",
-			Help:  random.String(bm.Words["banHelp"]),
+			Help:  bm.Words["banHelp"],
 			Names: []string{"ban"},
-			Full:  random.String(bm.Words["banHelpFull"]),
+			Full:  bm.Words["banHelpFull"],
 		},
 		Master: true,
 	})
@@ -331,7 +329,7 @@ func (bm *BotMaid) startBot() {
 
 					args, err := shlex.Split(u.Message.Content)
 					if err != nil {
-						Reply(u, fmt.Sprintf(random.String(bm.Words["invalidParameters"])), At(u.User), u.Message.Content)
+						Reply(u, fmt.Sprintf(bm.Words["invalidParameters"]), At(u.User), u.Message.Content)
 						return
 					}
 					u.Message.Args = args
@@ -452,9 +450,8 @@ func New(configFile string) (*BotMaid, error) {
 		}
 	}
 
-	bm.Words = map[string][]string{
-		"selfIntro": []string{
-			fmt.Sprintf(`%%v is a bot.
+	bm.Words = map[string]string{
+		"selfIntro": fmt.Sprintf(`%%v is a bot.
 
 Usage:
 
@@ -464,58 +461,33 @@ The commands are:
 %%v
 
 Use "help [COMMAND] for more information about a command."`, bm.Conf.CommandPrefix[0], ListToString(bm.Conf.CommandPrefix[1:], "%v", ", ", " or ")),
-		},
-		"undefCommand": []string{
-			"%v, the command \"%v\" is unknown, please retry after checking the spelling or the \"help\" command.",
-		},
-		"unregMaster": []string{
-			"%v, the master %v has been unregistered.",
-		},
-		"regMaster": []string{
-			"%v, the user %v has been registered as master.",
-		},
-		"unbanUser": []string{
-			"%v, the user %v has been unbanned.",
-		},
-		"banUser": []string{
-			"%v, the user %v has been banned.",
-		},
-		"noPermission": []string{
-			"%v, you don't have permission to use the command \"%v\".",
-		},
-		"invalidParameters": []string{
-			"%v, the parameters of the command \"%v\" is invalid.",
-		},
-		"noHelpText": []string{
-			"%v, the command \"%v\" has no help text.",
-		},
-		"invalidUser": []string{
-			"%v, the user \"%v\" is invalid or not exist.",
-		},
-		"helpHelp": []string{
-			"display help texts",
-		},
-		"helpHelpFull": []string{`Usage: help [COMMAND]
+		"undefCommand":      "%v, the command \"%v\" is unknown, please retry after checking the spelling or the \"help\" command.",
+		"unregMaster":       "%v, the master %v has been unregistered.",
+		"regMaster":         "%v, the user %v has been registered as master.",
+		"unbanUser":         "%v, the user %v has been unbanned.",
+		"banUser":           "%v, the user %v has been banned.",
+		"noPermission":      "%v, you don't have permission to use the command \"%v\".",
+		"invalidParameters": "%v, the parameters of the command \"%v\" is invalid.",
+		"noHelpText":        "%v, the command \"%v\" has no help text.",
+		"invalidUser":       "%v, the user \"%v\" is invalid or not exist.",
+		"helpHelp":          "display help texts",
+		"helpHelpFull": `Usage: help [COMMAND]
 
-%v`},
-		"masterHelp": []string{
-			"add/remove masters",
-		},
-		"masterHelpFull": []string{`Usage: master @USER
+%v`,
+		"masterHelp": "add/remove masters",
+		"masterHelpFull": `Usage: master @USER
 
-%v`},
-		"banHelp": []string{
-			"ban/unban users",
-		},
-		"banHelpFull": []string{`Usage: ban @USER
+%v`,
+		"banHelp": "ban/unban users",
+		"banHelpFull": `Usage: ban @USER
 
-%v`},
-		"fmtVersion": []string{"%v"},
-		"fmtLog": []string{`%v:
+%v`,
+		"fmtVersion": "%v",
+		"fmtLog": `%v:
 
-ChangeLog:%v`},
-		"versionSet": []string{"The version has been set."},
-		"logAdded":   []string{"The ChangeLog has been added."},
+ChangeLog:%v`,
+		"versionSet": "The version has been set.",
+		"logAdded":   "The ChangeLog has been added.",
 	}
 
 	return bm, nil

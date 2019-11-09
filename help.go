@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/catsworld/botmaid/random"
 	"github.com/spf13/pflag"
 )
 
@@ -30,7 +29,7 @@ func (bm *BotMaid) pushHelp(u *Update, hc string, showUndef bool) {
 		}
 
 		if c.Master && !bm.IsMaster(u.User) {
-			Reply(u, fmt.Sprintf(random.String(bm.Words["noPermission"]), At(u.User), hc))
+			Reply(u, fmt.Sprintf(bm.Words["noPermission"], At(u.User), hc))
 			return
 		}
 
@@ -58,7 +57,7 @@ func (bm *BotMaid) pushHelp(u *Update, hc string, showUndef bool) {
 		s = strings.TrimSpace(fmt.Sprintf(c.Help.Full, s))
 
 		if s == "" {
-			Reply(u, fmt.Sprintf(random.String(bm.Words["noHelpText"]), At(u.User), hc))
+			Reply(u, fmt.Sprintf(bm.Words["noHelpText"], At(u.User), hc))
 			return
 		}
 
@@ -67,6 +66,6 @@ func (bm *BotMaid) pushHelp(u *Update, hc string, showUndef bool) {
 	}
 
 	if showUndef {
-		Reply(u, fmt.Sprintf(random.String(bm.Words["undefCommand"]), At(u.User), hc))
+		Reply(u, fmt.Sprintf(bm.Words["undefCommand"], At(u.User), hc))
 	}
 }
