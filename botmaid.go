@@ -319,7 +319,7 @@ func (bm *BotMaid) startBot() {
 					}
 
 					if bm.Conf.Log {
-						logText := u.Message.Text
+						logText := u.Message.Content
 						if u.User != nil {
 							logText = u.User.NickName + ": " + logText
 						}
@@ -329,9 +329,9 @@ func (bm *BotMaid) startBot() {
 						log.Println(logText)
 					}
 
-					args, err := shlex.Split(u.Message.Text)
+					args, err := shlex.Split(u.Message.Content)
 					if err != nil {
-						Reply(u, fmt.Sprintf(random.String(bm.Words["invalidParameters"])), At(u.User), u.Message.Text)
+						Reply(u, fmt.Sprintf(random.String(bm.Words["invalidParameters"])), At(u.User), u.Message.Content)
 						return
 					}
 					u.Message.Args = args

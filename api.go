@@ -18,14 +18,14 @@ type API interface {
 
 // Update is a struct for an update of APIs.
 type Update struct {
-	ID int64
-
+	ID   int64
 	Type string
-	Time time.Time
 
 	Chat    *Chat
 	User    *User
 	Message *Message
+
+	Time time.Time
 
 	Bot *Bot
 }
@@ -49,11 +49,10 @@ type PullConfig struct {
 
 // Message is a struct for a message of an update.
 type Message struct {
-	ID int64
+	ID   int64
+	Type string
 
-	Text  string
-	Image string
-	Audio string
+	Content string
 
 	Args    []string
 	Command string
@@ -61,9 +60,9 @@ type Message struct {
 
 // Chat is a struct for a chat.
 type Chat struct {
-	ID int64
+	ID   int64
+	Type string
 
-	Type  string
 	Title string
 }
 

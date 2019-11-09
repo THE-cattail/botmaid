@@ -98,8 +98,8 @@ func (a *APICqhttp) mapToUpdates(m []interface{}) ([]*Update, error) {
 				},
 
 				Message: &Message{
-					ID:   int64(e["message_id"].(float64)),
-					Text: e["raw_message"].(string),
+					ID:      int64(e["message_id"].(float64)),
+					Content: e["raw_message"].(string),
 				},
 			}
 
@@ -206,28 +206,28 @@ func (a *APICqhttp) Push(update *Update) (*Update, error) {
 
 	message := ""
 
-	if update.Message.Audio != "" {
-		if strings.HasPrefix(update.Message.Audio, "http://") || strings.HasPrefix(update.Message.Audio, "https://") {
-			message += fmt.Sprintf("[CQ:record,file=%v]", update.Message.Audio)
+	if update.Message.Type == "Audio" {
+		if strings.HasPrefix(update.Message.Content, "http://") || strings.HasPrefix(update.Message.Content, "https://") {
+			message += fmt.Sprintf("[CQ:record,file=%v]", update.Message.Content)
 		} else {
-			file, err := ioutil.ReadFile(update.Message.Audio)
+			file, err := ioutil.ReadFile(update.Message.Content)
 			if err != nil {
 				return nil, fmt.Errorf("Read audio file: %v", err)
 			}
 			message += fmt.Sprintf("[CQ:record,file=base64://%v]", base64.StdEncoding.EncodeToString(file))
 		}
-	} else if update.Message.Image != "" {
-		if strings.HasPrefix(update.Message.Image, "http://") || strings.HasPrefix(update.Message.Image, "https://") {
-			message += fmt.Sprintf("[CQ:image,file=%v]", update.Message.Image)
+	} else if update.Message.Type == "Image" || update.Message.Type == "Sticker" {
+		if strings.HasPrefix(update.Message.Content, "http://") || strings.HasPrefix(update.Message.Content, "https://") {
+			message += fmt.Sprintf("[CQ:image,file=%v]", update.Message.Content)
 		} else {
-			file, err := ioutil.ReadFile(update.Message.Image)
+			file, err := ioutil.ReadFile(update.Message.Content)
 			if err != nil {
 				return nil, fmt.Errorf("Read image file: %v", err)
 			}
 			message += fmt.Sprintf("[CQ:image,file=base64://%v]", base64.StdEncoding.EncodeToString(file))
 		}
 	} else {
-		message += update.Message.Text
+		message += update.Message.Content
 	}
 
 	m["message"] = message

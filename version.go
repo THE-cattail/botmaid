@@ -36,7 +36,7 @@ func (bm *BotMaid) VersionMasterCommandDo(u *Update, f *pflag.FlagSet) bool {
 	broadcast, _ := f.GetBool("broadcast")
 	if broadcast {
 		bm.Broadcast("log", &Message{
-			Text: bm.getLog(),
+			Content: bm.getLog(),
 		})
 		return true
 	}

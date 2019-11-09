@@ -104,13 +104,13 @@ func (a *APITelegramBot) mapToUpdates(m []interface{}) ([]*Update, error) {
 			}
 
 			if _, ok := m["text"]; ok {
-				update.Message.Text = m["text"].(string)
+				update.Message.Content = m["text"].(string)
 				if _, ok := m["reply_to_message"]; ok {
 					r := m["reply_to_message"].(map[string]interface{})
 					if _, ok := r["from"]; ok {
 						u := r["from"].(map[string]interface{})
 						if _, ok := u["username"]; ok {
-							update.Message.Text = fmt.Sprintf("@%v", r["from"].(map[string]interface{})["username"].(string)) + " " + update.Message.Text
+							update.Message.Content = fmt.Sprintf("@%v", r["from"].(map[string]interface{})["username"].(string)) + " " + update.Message.Content
 						}
 					}
 				}
@@ -136,10 +136,10 @@ func (a *APITelegramBot) mapToUpdates(m []interface{}) ([]*Update, error) {
 							strings.ReplaceAll(nickName, "'", "\\'")
 							strings.ReplaceAll(nickName, "\"", "\\\"")
 
-							u16 := utf16.Encode([]rune(update.Message.Text))
+							u16 := utf16.Encode([]rune(update.Message.Content))
 							t := append(u16[:offset], utf16.Encode([]rune(fmt.Sprintf("\"<a href=\\\"tg://user?id=%v\\\">%v</a>\"", int64(user["id"].(float64)), nickName)))...)
 							u16 = append(t, u16[offset+length:]...)
-							update.Message.Text = string(utf16.Decode(u16))
+							update.Message.Content = string(utf16.Decode(u16))
 						}
 					}
 				}
@@ -148,7 +148,7 @@ func (a *APITelegramBot) mapToUpdates(m []interface{}) ([]*Update, error) {
 			if _, ok := m["sticker"]; ok {
 				s := m["sticker"].(map[string]interface{})
 				if _, ok := s["emoji"]; ok {
-					update.Message.Text = s["emoji"].(string)
+					update.Message.Content = s["emoji"].(string)
 				}
 			}
 
@@ -221,7 +221,7 @@ func (a *APITelegramBot) Push(update *Update) (*Update, error) {
 		return nil, nil
 	}
 
-	if update.Message.Image != "" && strings.HasSuffix(update.Message.Image, ".gif") {
+	if update.Message.Type == "Image" && strings.HasSuffix(update.Message.Content, ".gif") {
 		method := fmt.Sprintf(endPointAPITelegramBot, a.Token, "sendAnimation")
 
 		buf := new(bytes.Buffer)
@@ -231,12 +231,12 @@ func (a *APITelegramBot) Push(update *Update) (*Update, error) {
 
 		_ = w.WriteField("chat_id", strconv.FormatInt(update.Chat.ID, 10))
 
-		file, err := ioutil.ReadFile(update.Message.Image)
+		file, err := ioutil.ReadFile(update.Message.Content)
 		if err != nil {
 			return nil, fmt.Errorf("Send image: API %v: %v", "sendAnimation", err)
 		}
 
-		part, err := w.CreateFormFile("animation", filepath.Base(update.Message.Image))
+		part, err := w.CreateFormFile("animation", filepath.Base(update.Message.Content))
 		if err != nil {
 			return nil, fmt.Errorf("Send image: API %v: %v", "sendAnimation", err)
 		}
@@ -283,8 +283,11 @@ func (a *APITelegramBot) Push(update *Update) (*Update, error) {
 		return update, nil
 	}
 
-	if update.Message.Image != "" {
+	if update.Message.Type == "Image" || update.Message.Type == "Sticker" {
 		method := fmt.Sprintf(endPointAPITelegramBot, a.Token, "sendPhoto")
+		if update.Message.Type == "Sticker" {
+			method = fmt.Sprintf(endPointAPITelegramBot, a.Token, "sendSticker")
+		}
 
 		buf := new(bytes.Buffer)
 		w := multipart.NewWriter(buf)
@@ -293,15 +296,15 @@ func (a *APITelegramBot) Push(update *Update) (*Update, error) {
 
 		w.WriteField("chat_id", strconv.FormatInt(update.Chat.ID, 10))
 
-		if strings.HasPrefix(update.Message.Image, "http://") || strings.HasPrefix(update.Message.Image, "https://") {
-			w.WriteField("photo", update.Message.Image)
+		if strings.HasPrefix(update.Message.Content, "http://") || strings.HasPrefix(update.Message.Content, "https://") {
+			w.WriteField("photo", update.Message.Content)
 		} else {
-			file, err := ioutil.ReadFile(update.Message.Image)
+			file, err := ioutil.ReadFile(update.Message.Content)
 			if err != nil {
 				return nil, fmt.Errorf("Send image: API %v: %v", "sendPhoto", err)
 			}
 
-			part, err := w.CreateFormFile("photo", filepath.Base(update.Message.Image))
+			part, err := w.CreateFormFile("photo", filepath.Base(update.Message.Content))
 			if err != nil {
 				return nil, fmt.Errorf("Send image: API %v: %v", "sendPhoto", err)
 			}
@@ -349,7 +352,7 @@ func (a *APITelegramBot) Push(update *Update) (*Update, error) {
 		return update, nil
 	}
 
-	if update.Message.Audio != "" {
+	if update.Message.Type == "Audio" {
 		method := fmt.Sprintf(endPointAPITelegramBot, a.Token, "sendVoice")
 
 		buf := new(bytes.Buffer)
@@ -359,15 +362,15 @@ func (a *APITelegramBot) Push(update *Update) (*Update, error) {
 
 		w.WriteField("chat_id", strconv.FormatInt(update.Chat.ID, 10))
 
-		if strings.HasPrefix(update.Message.Audio, "http://") || strings.HasPrefix(update.Message.Audio, "https://") {
-			w.WriteField("voice", update.Message.Audio)
+		if strings.HasPrefix(update.Message.Content, "http://") || strings.HasPrefix(update.Message.Content, "https://") {
+			w.WriteField("voice", update.Message.Content)
 		} else {
-			file, err := ioutil.ReadFile(update.Message.Audio)
+			file, err := ioutil.ReadFile(update.Message.Content)
 			if err != nil {
 				return nil, fmt.Errorf("Send audio: API %v: %v", "sendVoice", err)
 			}
 
-			part, err := w.CreateFormFile("voice", filepath.Base(update.Message.Audio))
+			part, err := w.CreateFormFile("voice", filepath.Base(update.Message.Content))
 			if err != nil {
 				return nil, fmt.Errorf("Send audio: API %v: %v", "sendVoice", err)
 			}
@@ -417,7 +420,7 @@ func (a *APITelegramBot) Push(update *Update) (*Update, error) {
 
 	msg, err := a.API("sendMessage", map[string]interface{}{
 		"chat_id":    update.Chat.ID,
-		"text":       update.Message.Text,
+		"text":       update.Message.Content,
 		"parse_mode": "HTML",
 	})
 	if err != nil {

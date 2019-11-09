@@ -105,7 +105,7 @@ func (bm *BotMaid) BeAt(u *Update) bool {
 	}
 
 	for _, v := range ats(u.Bot.Self) {
-		if strings.Contains(u.Message.Text, v) {
+		if strings.Contains(u.Message.Content, v) {
 			return true
 		}
 	}
@@ -126,7 +126,7 @@ func Reply(u *Update, s ...string) (*Update, error) {
 	if len(s) == 1 || s[1] == "Text" {
 		return (*u.Bot.API).Push(&Update{
 			Message: &Message{
-				Text: s[0],
+				Content: s[0],
 			},
 			Chat: u.Chat,
 		})
@@ -134,7 +134,8 @@ func Reply(u *Update, s ...string) (*Update, error) {
 	if s[1] == "Image" {
 		return (*u.Bot.API).Push(&Update{
 			Message: &Message{
-				Image: s[0],
+				Type:    "Image",
+				Content: s[0],
 			},
 			Chat: u.Chat,
 		})
@@ -142,7 +143,8 @@ func Reply(u *Update, s ...string) (*Update, error) {
 	if s[1] == "Audio" {
 		return (*u.Bot.API).Push(&Update{
 			Message: &Message{
-				Audio: s[0],
+				Type:    "Audio",
+				Content: s[0],
 			},
 			Chat: u.Chat,
 		})
