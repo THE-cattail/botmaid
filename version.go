@@ -38,7 +38,7 @@ func (bm *BotMaid) VersionCommandDo(u *Update, f *pflag.FlagSet) bool {
 }
 
 func (bm *BotMaid) VersionMasterCommandDo(u *Update, f *pflag.FlagSet) bool {
-	if len(f.Args()) == 1 {
+	if len(f.Args()) == 2 {
 		log, _ := f.GetString("log")
 		if log != "" {
 			bm.Redis.RPush("log_"+bm.Redis.Get("version").Val(), f.Args())
@@ -65,4 +65,10 @@ func (bm *BotMaid) VersionMasterCommandDo(u *Update, f *pflag.FlagSet) bool {
 	}
 
 	return false
+}
+
+func (bm *BotMaid) VersionMasterCommandHelpSetFlag(f *pflag.FlagSet) {
+	f.String("log", "", random.String(bm.Words["versionMasterLogHelp"]))
+	f.String("logbm", "", random.String(bm.Words["versionMasterLogHelp"]))
+	f.Bool("broadcast", false, random.String(bm.Words["versionMasterBroadcastHelp"]))
 }
