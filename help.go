@@ -29,7 +29,7 @@ func (bm *BotMaid) pushHelp(u *Update, hc string, showUndef bool) {
 		}
 
 		if c.Master && !bm.IsMaster(u.User) {
-			Reply(u, fmt.Sprintf(bm.Words["noPermission"], At(u.User), hc))
+			bm.Reply(u, fmt.Sprintf(bm.Words["noPermission"], bm.At(u.User), hc))
 			return
 		}
 
@@ -57,15 +57,15 @@ func (bm *BotMaid) pushHelp(u *Update, hc string, showUndef bool) {
 		s = strings.TrimSpace(fmt.Sprintf(c.Help.Full, s))
 
 		if s == "" {
-			Reply(u, fmt.Sprintf(bm.Words["noHelpText"], At(u.User), hc))
+			bm.Reply(u, fmt.Sprintf(bm.Words["noHelpText"], bm.At(u.User), hc))
 			return
 		}
 
-		Reply(u, s)
+		bm.Reply(u, s)
 		return
 	}
 
 	if showUndef {
-		Reply(u, fmt.Sprintf(bm.Words["undefCommand"], At(u.User), hc))
+		bm.Reply(u, fmt.Sprintf(bm.Words["undefCommand"], bm.At(u.User), hc))
 	}
 }

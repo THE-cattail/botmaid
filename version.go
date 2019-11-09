@@ -19,11 +19,11 @@ func (bm *BotMaid) getLog() string {
 func (bm *BotMaid) VersionCommandDo(u *Update, f *pflag.FlagSet) bool {
 	log, _ := f.GetBool("log")
 	if log {
-		Reply(u, bm.getLog())
+		bm.Reply(u, bm.getLog())
 		return true
 	}
 
-	Reply(u, fmt.Sprintf(bm.Words["fmtVersion"], bm.Redis.Get("version").Val()))
+	bm.Reply(u, fmt.Sprintf(bm.Words["fmtVersion"], bm.Redis.Get("version").Val()))
 	return true
 }
 
@@ -50,14 +50,14 @@ func (bm *BotMaid) VersionMasterCommandDo(u *Update, f *pflag.FlagSet) bool {
 
 	if len(f.Args()) == 2 {
 		bm.Redis.Set("version", f.Args()[1], 0)
-		Reply(u, bm.Words["versionSet"])
+		bm.Reply(u, bm.Words["versionSet"])
 		flag = true
 	}
 
 	log, _ := f.GetString("log")
 	if log != "" {
 		bm.Redis.RPush("log_"+v, log)
-		Reply(u, bm.Words["logAdded"])
+		bm.Reply(u, bm.Words["logAdded"])
 		flag = true
 	}
 

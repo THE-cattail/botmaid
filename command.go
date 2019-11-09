@@ -52,7 +52,7 @@ func (bm *BotMaid) extractCommand(u *Update) string {
 	}
 
 	s := u.Message.Args[0]
-	for _, v := range ats(u.Bot.Self) {
+	for _, v := range bm.ats(u.Bot.Self) {
 		if len(u.Message.Args[0])-len(v) > 0 && strings.LastIndex(u.Message.Args[0], v) == len(u.Message.Args[0])-len(v) {
 			s = u.Message.Args[0][:len(u.Message.Args[0])-len(v)]
 			break

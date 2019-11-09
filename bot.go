@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -86,7 +87,7 @@ func (bm *BotMaid) ParseUserID(u *Update, s string) (int64, error) {
 	return 0, errors.New("Invalid At string")
 }
 
-func ats(u *User) []string {
+func (bm *BotMaid) ats(u *User) []string {
 	if u.Bot.Platform() == "QQ" {
 		return []string{fmt.Sprintf("[CQ:at,qq=%v]", u.ID)}
 	}
@@ -104,7 +105,7 @@ func (bm *BotMaid) BeAt(u *Update) bool {
 		return false
 	}
 
-	for _, v := range ats(u.Bot.Self) {
+	for _, v := range bm.ats(u.Bot.Self) {
 		if strings.Contains(u.Message.Content, v) {
 			return true
 		}
@@ -114,15 +115,16 @@ func (bm *BotMaid) BeAt(u *Update) bool {
 }
 
 // At returns a string to mention someone in a message.
-func At(u *User) string {
-	return ats(u)[0]
+func (bm *BotMaid) At(u *User) string {
+	return bm.ats(u)[0]
 }
 
 // Reply replies a message back.
-func Reply(u *Update, s ...string) (*Update, error) {
+func (bm *BotMaid) Reply(u *Update, s ...string) (*Update, error) {
 	if len(s) < 1 || len(s) > 2 {
 		return nil, errors.New("Invalid number of arguments")
 	}
+
 	if len(s) == 1 || s[1] == "Text" {
 		return (*u.Bot.API).Push(&Update{
 			Message: &Message{
@@ -149,6 +151,14 @@ func Reply(u *Update, s ...string) (*Update, error) {
 			Chat: u.Chat,
 		})
 	}
+
+	for len(bm.history[u.Chat.ID]) > 0 && time.Now().Sub(bm.history[u.Chat.ID][0]) > time.Second {
+		bm.history[u.Chat.ID] = bm.history[u.Chat.ID][1:]
+	}
+	if len(bm.history[u.Chat.ID]) >= 5 {
+		bm.Redis.SAdd(fmt.Sprintf("ban_%v", u.Bot.ID), fmt.Sprintf("%v|%v", u.Chat.ID, u.Chat.Title))
+	}
+
 	return nil, errors.New("Invalid type of message")
 }
 
