@@ -3,7 +3,6 @@ package botmaid
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -119,81 +118,39 @@ func (bm *BotMaid) At(u *User) string {
 	return bm.ats(u)[0]
 }
 
-// Reply replies a message back.
-func (bm *BotMaid) Reply(u *Update, s ...string) (*Update, error) {
-	if len(s) < 1 || len(s) > 2 {
-		return nil, errors.New("Invalid number of arguments")
-	}
-
-	if len(s) == 1 || s[1] == "Text" {
-		return (*u.Bot.API).Push(&Update{
-			Message: &Message{
-				Content: s[0],
-			},
-			Chat: u.Chat,
-		})
-	}
-	if s[1] == "Image" {
-		return (*u.Bot.API).Push(&Update{
-			Message: &Message{
-				Type:    "Image",
-				Content: s[0],
-			},
-			Chat: u.Chat,
-		})
-	}
-	if s[1] == "Audio" {
-		return (*u.Bot.API).Push(&Update{
-			Message: &Message{
-				Type:    "Audio",
-				Content: s[0],
-			},
-			Chat: u.Chat,
-		})
-	}
-
+func (bm *BotMaid) antiReplyLoop(u *Update) {
 	for len(bm.history[u.Chat.ID]) > 0 && time.Now().Sub(bm.history[u.Chat.ID][0]) > time.Second {
 		bm.history[u.Chat.ID] = bm.history[u.Chat.ID][1:]
 	}
 	if len(bm.history[u.Chat.ID]) >= 5 {
 		bm.Redis.SAdd(fmt.Sprintf("ban_%v", u.Bot.ID), fmt.Sprintf("%v|%v", u.Chat.ID, u.Chat.Title))
 	}
+}
+
+// Reply replies a message back.
+func (bm *BotMaid) Reply(u *Update, s string) (*Update, error) {
+	bm.antiReplyLoop(u)
+
+	return (*u.Bot.API).Push(&Update{
+		Message: &Message{
+			Content: s,
+		},
+		Chat: u.Chat,
+	})
+}
+
+func (bm *BotMaid) ReplyType(u *Update, s, t string) (*Update, error) {
+	bm.antiReplyLoop(u)
+
+	if Contains([]string{"Image", "Audio", "Sticker"}, t) {
+		return (*u.Bot.API).Push(&Update{
+			Message: &Message{
+				Type:    t,
+				Content: s,
+			},
+			Chat: u.Chat,
+		})
+	}
 
 	return nil, errors.New("Invalid type of message")
-}
-
-// In checks if the element is in the slice.
-func In(a interface{}, s ...interface{}) bool {
-	if len(s) == 1 && reflect.TypeOf(s[0]).Kind() == reflect.Slice {
-		t := reflect.ValueOf(s[0])
-		for i := 0; i < t.Len(); i++ {
-			if t.Index(i).Interface() == a {
-				return true
-			}
-		}
-		return false
-	}
-
-	for _, v := range s {
-		if v == a {
-			return true
-		}
-	}
-	return false
-}
-
-// ListToString convert the list to a string.
-func ListToString(list []string, format string, separator string, andWord string) string {
-	if len(list) < 1 {
-		return ""
-	}
-	if len(list) == 1 {
-		return fmt.Sprintf(format, list[0])
-	}
-	ret := fmt.Sprintf(format, list[0])
-	for i := 1; i < len(list)-1; i++ {
-		ret += separator + fmt.Sprintf(format, list[i])
-	}
-	ret += andWord + fmt.Sprintf(format, list[len(list)-1])
-	return ret
 }

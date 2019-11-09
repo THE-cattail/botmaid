@@ -24,7 +24,7 @@ func (bm *BotMaid) pushHelp(u *Update, hc string, showUndef bool) {
 		if c.Help.Menu == "" {
 			continue
 		}
-		if !In(hc, c.Help.Names) {
+		if !Contains(c.Help.Names, hc) {
 			continue
 		}
 

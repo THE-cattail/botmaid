@@ -74,28 +74,3 @@ func (bm *BotMaid) extractCommand(u *Update) string {
 
 	return s
 }
-
-// IsCommand checks if a message is a specific command.
-func IsCommand(u *Update, c ...interface{}) bool {
-	if len(c) == 0 && u.Message.Command != "" {
-		return true
-	}
-
-	if len(c) == 1 {
-		if _, ok := c[0].([]string); ok {
-			for _, v := range c[0].([]string) {
-				if u.Message.Command == v {
-					return true
-				}
-			}
-			return false
-		}
-	}
-
-	for _, v := range c {
-		if u.Message.Command == v {
-			return true
-		}
-	}
-	return false
-}

@@ -184,9 +184,9 @@ func (bm *BotMaid) initCommand() {
 
 	bm.AddCommand(&Command{
 		Do: func(u *Update, f *pflag.FlagSet) bool {
-			if IsCommand(u) {
+			if u.Message.Command != "" {
 				for _, c := range bm.Commands {
-					if c.Help != nil && len(c.Help.Names) != 0 && !IsCommand(u, c.Help.Names) {
+					if c.Help != nil && len(c.Help.Names) != 0 && Contains(c.Help.Names, u.Message.Command) {
 						continue
 					}
 
@@ -301,7 +301,7 @@ func (bm *BotMaid) startBot() {
 
 					args, err := shlex.Split(u.Message.Content)
 					if err != nil {
-						bm.Reply(u, fmt.Sprintf(bm.Words["invalidParameters"]), bm.At(u.User), u.Message.Content)
+						bm.Reply(u, fmt.Sprintf(bm.Words["invalidParameters"], bm.At(u.User), u.Message.Content))
 						return
 					}
 					u.Message.Args = args
@@ -322,7 +322,7 @@ func (bm *BotMaid) startBot() {
 					}
 
 					for _, c := range bm.Commands {
-						if c.Help != nil && len(c.Help.Names) != 0 && !IsCommand(u, c.Help.Names) {
+						if c.Help != nil && len(c.Help.Names) != 0 && Contains(c.Help.Names, u.Message.Command) {
 							continue
 						}
 
