@@ -178,9 +178,7 @@ func (bm *BotMaid) initCommand() {
 			Menu:  "help",
 			Help:  random.String(bm.Words["helpHelp"]),
 			Names: []string{"help"},
-			Full: `Usage: help [COMMAND]
-
-%v`,
+			Full:  random.String(bm.Words["helpHelpFull"]),
 		},
 		Priority: 10000,
 	})
@@ -236,9 +234,7 @@ func (bm *BotMaid) initCommand() {
 			Menu:  "master",
 			Help:  random.String(bm.Words["masterHelp"]),
 			Names: []string{"master"},
-			Full: `Usage: master USER
-
-%v`,
+			Full:  random.String(bm.Words["masterHelpFull"]),
 		},
 		Master: true,
 	})
@@ -271,9 +267,7 @@ func (bm *BotMaid) initCommand() {
 			Menu:  "ban",
 			Help:  random.String(bm.Words["banHelp"]),
 			Names: []string{"ban"},
-			Full: `Usage: ban USER
-
-%v`,
+			Full:  random.String(bm.Words["banHelpFull"]),
 		},
 		Master: true,
 	})
@@ -501,12 +495,21 @@ Use "help [COMMAND] for more information about a command."`, bm.Conf.CommandPref
 		"helpHelp": []string{
 			"display help texts",
 		},
+		"helpHelpFull": []string{`Usage: help [COMMAND]
+
+%v`},
 		"masterHelp": []string{
 			"add/remove masters",
 		},
+		"masterHelpFull": []string{`Usage: master USER
+
+%v`},
 		"banHelp": []string{
 			"ban/unban users",
 		},
+		"banHelpFull": []string{`Usage: ban USER
+
+%v`},
 	}
 
 	return bm, nil
