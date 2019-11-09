@@ -14,27 +14,22 @@ func (bm *BotMaid) getLog() string {
 		log += fmt.Sprintf("\n%v. %v", i+1, l[i])
 	}
 
-	logBM := ""
-	l = bm.Redis.LRange("logBM_"+bm.Redis.Get("version").Val(), 0, -1).Val()
-	for i := range l {
-		logBM += fmt.Sprintf("\n%v. %v", i+1, l[i])
-	}
-
-	return fmt.Sprintf(random.String(bm.Words["fmtLog"]), bm.Redis.Get("version").Val(), log, logBM)
+	return fmt.Sprintf(random.String(bm.Words["fmtLog"]), bm.Redis.Get("version").Val(), log)
 }
 
 func (bm *BotMaid) VersionCommandDo(u *Update, f *pflag.FlagSet) bool {
-	if len(f.Args()) == 1 {
-		Reply(u, fmt.Sprintf(random.String(bm.Words["fmtVersion"]), bm.Redis.Get("version").Val()))
-		return true
-	}
-
-	if len(f.Args()) == 2 && In(f.Args()[1], "log") {
+	log, _ := f.GetBool("log")
+	if log {
 		Reply(u, bm.getLog())
 		return true
 	}
 
-	return false
+	Reply(u, fmt.Sprintf(random.String(bm.Words["fmtVersion"]), bm.Redis.Get("version").Val()))
+	return true
+}
+
+func (bm *BotMaid) VersionCommandHelpSetFlag(f *pflag.FlagSet) {
+	f.BoolP("log", "l", false, random.String(bm.Words["versionLogHelp"]))
 }
 
 func (bm *BotMaid) VersionMasterCommandDo(u *Update, f *pflag.FlagSet) bool {
@@ -47,6 +42,12 @@ func (bm *BotMaid) VersionMasterCommandDo(u *Update, f *pflag.FlagSet) bool {
 	}
 
 	flag := false
+	v := bm.Redis.Get("version").Val()
+
+	ver, _ := f.GetString("ver")
+	if ver != "" {
+		v = ver
+	}
 
 	if len(f.Args()) == 2 {
 		bm.Redis.Set("version", f.Args()[1], 0)
@@ -56,15 +57,8 @@ func (bm *BotMaid) VersionMasterCommandDo(u *Update, f *pflag.FlagSet) bool {
 
 	log, _ := f.GetString("log")
 	if log != "" {
-		bm.Redis.RPush("log_"+bm.Redis.Get("version").Val(), f.Args())
+		bm.Redis.RPush("log_"+v, log)
 		Reply(u, random.String(bm.Words["logAdded"]))
-		flag = true
-	}
-
-	logBM, _ := f.GetString("logbm")
-	if logBM != "" {
-		bm.Redis.RPush("logBM_"+bm.Redis.Get("version").Val(), f.Args())
-		Reply(u, random.String(bm.Words["logBMAdded"]))
 		flag = true
 	}
 
@@ -72,7 +66,7 @@ func (bm *BotMaid) VersionMasterCommandDo(u *Update, f *pflag.FlagSet) bool {
 }
 
 func (bm *BotMaid) VersionMasterCommandHelpSetFlag(f *pflag.FlagSet) {
+	f.String("ver", "", random.String(bm.Words["versionMasterVerHelp"]))
 	f.String("log", "", random.String(bm.Words["versionMasterLogHelp"]))
-	f.String("logbm", "", random.String(bm.Words["versionMasterLogHelp"]))
 	f.Bool("broadcast", false, random.String(bm.Words["versionMasterBroadcastHelp"]))
 }

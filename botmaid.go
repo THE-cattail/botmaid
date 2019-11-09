@@ -510,6 +510,12 @@ Use "help [COMMAND] for more information about a command."`, bm.Conf.CommandPref
 		"banHelpFull": []string{`Usage: ban @USER
 
 %v`},
+		"fmtVersion": []string{"%v"},
+		"fmtLog": []string{`%v:
+
+ChangeLog:%v`},
+		"versionSet": []string{"The version has been set."},
+		"logAdded":   []string{"The ChangeLog has been added."},
 	}
 
 	return bm, nil
