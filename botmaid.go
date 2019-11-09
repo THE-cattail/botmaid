@@ -303,8 +303,12 @@ func (bm *BotMaid) startBot() {
 						return
 					}
 
-					if b.Platform() == "Telegram" && u.User != nil && u.User.UserName != "" {
-						bm.Redis.HSet("telegramUsers", fmt.Sprintf("%v", u.User.UserName), u.User.ID)
+					if b.Platform() == "Telegram" {
+						if u.User != nil && u.User.UserName != "" {
+							bm.Redis.HSet("telegramUsers", fmt.Sprintf("%v", u.User.UserName), u.User.ID)
+						}
+
+						u.Message.Content = strings.ReplaceAll(u.Message.Content, "—", "--")
 					}
 
 					u.Bot = b
