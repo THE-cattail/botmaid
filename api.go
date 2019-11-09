@@ -64,6 +64,8 @@ type Chat struct {
 	Type string
 
 	Title string
+
+	Bot *Bot
 }
 
 // User is a struct for a user.

@@ -37,8 +37,8 @@ func (bm *BotMaid) IsMaster(u *User) bool {
 }
 
 // IsBanned checks if a user has been banned.
-func (bm *BotMaid) IsBanned(u *User) bool {
-	return bm.Redis.SIsMember("ban_"+u.Bot.ID, u.ID).Val()
+func (bm *BotMaid) IsBanned(c *Chat) bool {
+	return bm.Redis.SIsMember("ban_"+c.Bot.ID, c.ID).Val()
 }
 
 // ParseUserID parses the ID of the User in the At string.
@@ -119,11 +119,13 @@ func (bm *BotMaid) At(u *User) string {
 }
 
 func (bm *BotMaid) antiReplyLoop(u *Update) {
-	for len(bm.history[u.Chat.ID]) > 0 && time.Now().Sub(bm.history[u.Chat.ID][0]) > time.Second {
+	now := time.Now()
+	for len(bm.history[u.Chat.ID]) > 0 && now.Sub(bm.history[u.Chat.ID][0]) > time.Second {
 		bm.history[u.Chat.ID] = bm.history[u.Chat.ID][1:]
 	}
+	bm.history[u.Chat.ID] = append(bm.history[u.Chat.ID], now)
 	if len(bm.history[u.Chat.ID]) >= 5 {
-		bm.Redis.SAdd(fmt.Sprintf("ban_%v", u.Bot.ID), fmt.Sprintf("%v|%v", u.Chat.ID, u.Chat.Title))
+		bm.Redis.SAdd(fmt.Sprintf("ban_%v", u.Bot.ID), u.Chat.ID)
 	}
 }
 

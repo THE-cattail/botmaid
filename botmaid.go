@@ -186,7 +186,7 @@ func (bm *BotMaid) initCommand() {
 		Do: func(u *Update, f *pflag.FlagSet) bool {
 			if u.Message.Command != "" {
 				for _, c := range bm.Commands {
-					if c.Help != nil && len(c.Help.Names) != 0 && Contains(c.Help.Names, u.Message.Command) {
+					if c.Help != nil && len(c.Help.Names) != 0 && !Contains(c.Help.Names, u.Message.Command) {
 						continue
 					}
 
@@ -283,9 +283,11 @@ func (bm *BotMaid) startBot() {
 					if u.User != nil {
 						u.User.Bot = b
 					}
-
-					if bm.IsBanned(u.User) {
-						return
+					if u.Chat != nil {
+						u.Chat.Bot = b
+						if bm.IsBanned(u.Chat) {
+							return
+						}
 					}
 
 					if bm.Conf.Log {
@@ -322,7 +324,7 @@ func (bm *BotMaid) startBot() {
 					}
 
 					for _, c := range bm.Commands {
-						if c.Help != nil && len(c.Help.Names) != 0 && Contains(c.Help.Names, u.Message.Command) {
+						if c.Help != nil && len(c.Help.Names) != 0 && !Contains(c.Help.Names, u.Message.Command) {
 							continue
 						}
 
