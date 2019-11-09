@@ -501,13 +501,13 @@ Use "help [COMMAND] for more information about a command."`, bm.Conf.CommandPref
 		"masterHelp": []string{
 			"add/remove masters",
 		},
-		"masterHelpFull": []string{`Usage: master USER
+		"masterHelpFull": []string{`Usage: master @USER
 
 %v`},
 		"banHelp": []string{
 			"ban/unban users",
 		},
-		"banHelpFull": []string{`Usage: ban USER
+		"banHelpFull": []string{`Usage: ban @USER
 
 %v`},
 	}
