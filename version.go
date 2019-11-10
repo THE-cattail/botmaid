@@ -33,14 +33,14 @@ func (bm *BotMaid) VersionCommandHelpSetFlag(f *pflag.FlagSet) {
 
 func (bm *BotMaid) VersetCommandDo(u *Update, f *pflag.FlagSet) bool {
 	if !bm.IsMaster(u.User) {
-		bm.Reply(u, fmt.Sprintf(bm.Words["noPermission"], bm.At(u.User)))
+		bm.Reply(u, fmt.Sprintf(bm.Words["noPermission"], bm.At(u.User), "verset"))
 		return true
 	}
 
 	broadcast, _ := f.GetBool("broadcast")
 	if broadcast {
 		bm.Broadcast("log", &Message{
-			Content: bm.getLog(),
+			Content: bm.Words["upgraded"] + bm.getLog(),
 		})
 		return true
 	}

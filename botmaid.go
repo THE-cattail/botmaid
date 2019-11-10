@@ -321,7 +321,7 @@ Use "help [COMMAND] for more information about a command."`, bm.Conf.CommandPref
 		"undefCommand":        "%v, the command \"%v\" is unknown, please retry after checking the spelling or the \"help\" command.",
 		"unregMaster":         "%v, the master %v has been unregistered.",
 		"regMaster":           "%v, the user %v has been registered as master.",
-		"noPermission":        "%v, you don't have permission to perform this operation.",
+		"noPermission":        "%v, you don't have permission to use \"%v\"",
 		"invalidParameters":   "%v, the parameters of the command \"%v\" is invalid.",
 		"noHelpText":          "%v, the command \"%v\" has no help text.",
 		"invalidUser":         "%v, the user \"%v\" is invalid or not exist.",
@@ -333,6 +333,9 @@ Use "help [COMMAND] for more information about a command."`, bm.Conf.CommandPref
 		"versetVerHelp":       "appoint the version to manage",
 		"versetLogHelp":       "add a sentence to the change log",
 		"versetBroadcastHelp": "broadcast the change log",
+		"upgraded":            "New version! ",
+		"subscribed":          "\"%v\" has been subscibed on this Chat.",
+		"unsubscribed":        "\"%v\" has been unsubscibed on this Chat.",
 	}
 
 	return bm, nil
