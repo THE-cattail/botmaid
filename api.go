@@ -5,15 +5,13 @@ import (
 )
 
 // API is an interface including some common behaviors for APIs.
-//
-// GetUpdates always gets updates and errors into the channels with a given config.
-//
-// Push always pushes an update and returns it back if existing.
-//
-// Delete always deletes a specific update.
 type API interface {
 	Pull(*PullConfig) (UpdateChannel, ErrorChannel)
 	Push(*Update) (*Update, error)
+
+	Platform() string
+	ParseUserID(u *Update, s string) (int64, error)
+	ats(u *User) []string
 }
 
 // Update is a struct for an update of APIs.

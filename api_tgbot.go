@@ -3,6 +3,7 @@ package botmaid
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"mime/multipart"
@@ -12,6 +13,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf16"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 // APITelegramBot is a struct stores some basic information of the Telegram Bot API. Please search in official API document for details.
@@ -209,7 +212,7 @@ func (a *APITelegramBot) Pull(pc *PullConfig) (UpdateChannel, ErrorChannel) {
 
 // Push pushes an update and returns it back if existing.
 func (a *APITelegramBot) Push(update *Update) (*Update, error) {
-	if update.Type == "delete" {
+	if update.Type == "Delete" {
 		_, err := a.API("deleteMessage", map[string]interface{}{
 			"chat_id":    update.Chat.ID,
 			"message_id": update.ID,
@@ -284,10 +287,14 @@ func (a *APITelegramBot) Push(update *Update) (*Update, error) {
 	}
 
 	if update.Message.Type == "Image" || update.Message.Type == "Sticker" {
-		method := fmt.Sprintf(endPointAPITelegramBot, a.Token, "sendPhoto")
+		api := "sendPhoto"
+		para := "photo"
 		if update.Message.Type == "Sticker" {
-			method = fmt.Sprintf(endPointAPITelegramBot, a.Token, "sendSticker")
+			api = "sendSticker"
+			para = "sticker"
 		}
+
+		method := fmt.Sprintf(endPointAPITelegramBot, a.Token, api)
 
 		buf := new(bytes.Buffer)
 		w := multipart.NewWriter(buf)
@@ -297,18 +304,17 @@ func (a *APITelegramBot) Push(update *Update) (*Update, error) {
 		w.WriteField("chat_id", strconv.FormatInt(update.Chat.ID, 10))
 
 		if strings.HasPrefix(update.Message.Content, "http://") || strings.HasPrefix(update.Message.Content, "https://") {
-			w.WriteField("photo", update.Message.Content)
+			w.WriteField(para, update.Message.Content)
 		} else {
 			file, err := ioutil.ReadFile(update.Message.Content)
 			if err != nil {
-				return nil, fmt.Errorf("Send image: API %v: %v", "sendPhoto", err)
+				return nil, fmt.Errorf("Send image: API %v: %v", api, err)
 			}
 
-			part, err := w.CreateFormFile("photo", filepath.Base(update.Message.Content))
+			part, err := w.CreateFormFile(para, filepath.Base(update.Message.Content))
 			if err != nil {
-				return nil, fmt.Errorf("Send image: API %v: %v", "sendPhoto", err)
+				return nil, fmt.Errorf("Send image: API %v: %v", api, err)
 			}
-
 			part.Write(file)
 		}
 		w.Close()
@@ -318,33 +324,33 @@ func (a *APITelegramBot) Push(update *Update) (*Update, error) {
 
 		req, err := http.NewRequest("POST", method, buf)
 		if err != nil {
-			return nil, fmt.Errorf("Send image: API %v: %v", "sendPhoto", err)
+			return nil, fmt.Errorf("Send image: API %v: %v", api, err)
 		}
 		req.Header = header
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return nil, fmt.Errorf("Send image: API %v: %v", "sendPhoto", err)
+			return nil, fmt.Errorf("Send image: API %v: %v", api, err)
 		}
 		defer resp.Body.Close()
 
 		raw, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return nil, fmt.Errorf("Send image: API %v: %v", "sendPhoto", err)
+			return nil, fmt.Errorf("Send image: API %v: %v", api, err)
 		}
 
 		m := map[string]interface{}{}
 		err = json.Unmarshal(raw, &m)
 		if err != nil {
-			return nil, fmt.Errorf("Send image: API %v: %v", "sendPhoto", err)
+			return nil, fmt.Errorf("Send image: API %v: %v", api, err)
 		}
 
 		if _, ok := m["ok"]; !ok {
-			return nil, fmt.Errorf("Send image: API %v: Unsuccessful request", "sendPhoto")
+			return nil, fmt.Errorf("Send image: API %v: Unsuccessful request", api)
 		}
 
 		if !m["ok"].(bool) {
-			return nil, fmt.Errorf("Send image: API %v: %v", "sendPhoto", m["description"].(string))
+			return nil, fmt.Errorf("Send image: API %v: %v", api, m["description"].(string))
 		}
 
 		update.ID = int64(m["result"].(map[string]interface{})["message_id"].(float64))
@@ -430,4 +436,42 @@ func (a *APITelegramBot) Push(update *Update) (*Update, error) {
 	update.ID = int64(msg.(map[string]interface{})["message_id"].(float64))
 
 	return update, nil
+}
+
+// Platform returns a string showing the platform of the bot.
+func (a *APITelegramBot) Platform() string {
+	return "Telegram"
+}
+
+// ParseUserID parses the ID of the User in the At string.
+func (a *APITelegramBot) ParseUserID(u *Update, s string) (int64, error) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(s))
+	if err == nil {
+		s := doc.Find("a").AttrOr("href", "")
+		if strings.HasPrefix(s, "tg://user?id=") {
+			s = s[13:]
+
+			id, err := strconv.ParseInt(s, 10, 64)
+			if err != nil {
+				return 0, fmt.Errorf("Invalid At string: %v", err)
+			}
+			return id, nil
+		}
+	}
+
+	if strings.HasPrefix(s, "@") {
+		s = u.Bot.BotMaid.Redis.HGet("telegramUsers", s[1:]).Val()
+
+		id, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("Invalid At string: %v", err)
+		}
+		return id, nil
+	}
+
+	return 0, errors.New("Invalid At string")
+}
+
+func (a *APITelegramBot) ats(u *User) []string {
+	return []string{fmt.Sprintf("<a href=\"tg://user?id=%v\">%v</a>", u.ID, u.NickName), fmt.Sprintf("@%v", u.UserName)}
 }

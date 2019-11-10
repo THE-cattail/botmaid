@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -179,7 +180,7 @@ func (a *APICqhttp) Pull(pc *PullConfig) (UpdateChannel, ErrorChannel) {
 
 // Push pushes an update and returns it back if existing.
 func (a *APICqhttp) Push(update *Update) (*Update, error) {
-	if update.Type == "delete" {
+	if update.Type == "Delete" {
 		_, err := a.API("delete_msg", map[string]interface{}{
 			"message_id": update.ID,
 		})
@@ -240,4 +241,30 @@ func (a *APICqhttp) Push(update *Update) (*Update, error) {
 	update.ID = int64(msg.(map[string]interface{})["message_id"].(float64))
 
 	return update, nil
+}
+
+// Platform returns a string showing the platform of the bot.
+func (a *APICqhttp) Platform() string {
+	return "QQ"
+}
+
+// ParseUserID parses the ID of the User in the At string.
+func (a *APICqhttp) ParseUserID(u *Update, s string) (int64, error) {
+	if strings.HasPrefix(s, "[CQ:at,qq=") && strings.HasSuffix(s, "]") {
+		start := 10
+		end := strings.LastIndex(s, "]")
+		s = s[start:end]
+
+		id, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("Invalid At string: %v", err)
+		}
+		return id, nil
+	}
+
+	return 0, errors.New("Invalid At string")
+}
+
+func (a *APICqhttp) ats(u *User) []string {
+	return []string{fmt.Sprintf("[CQ:at,qq=%v]", u.ID)}
 }

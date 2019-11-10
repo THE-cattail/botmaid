@@ -2,6 +2,7 @@ package botmaid
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/spf13/pflag"
@@ -68,4 +69,58 @@ func (bm *BotMaid) pushHelp(u *Update, hc string, showUndef bool) {
 	if showUndef {
 		bm.Reply(u, fmt.Sprintf(bm.Words["undefCommand"], bm.At(u.User), hc))
 	}
+}
+
+func (bm *BotMaid) HelpCommandDo(u *Update, f *pflag.FlagSet) bool {
+	if len(f.Args()) == 1 {
+		helps := []string{}
+
+		for _, c := range bm.Commands {
+			if c.Help == nil || c.Help.Menu == "" {
+				continue
+			}
+			if c.Master && !bm.IsMaster(u.User) {
+				continue
+			}
+
+			helps = append(helps, fmt.Sprintf("  %v  %v", c.Help.Menu, c.Help.Help))
+		}
+
+		sort.Strings(helps)
+
+		s := ""
+		for _, v := range helps {
+			s += "\n" + v
+		}
+
+		bm.Reply(u, fmt.Sprintf(bm.Words["selfIntro"], u.Bot.Self.NickName, s))
+		return true
+	}
+
+	if len(f.Args()) == 2 {
+		bm.pushHelp(u, f.Args()[1], true)
+		return true
+	}
+
+	return false
+}
+
+func (bm *BotMaid) HelpRespCommandDo(u *Update, f *pflag.FlagSet) bool {
+	if u.Message.Command != "" {
+		for _, c := range bm.Commands {
+			if c.Help != nil && len(c.Help.Names) != 0 && !Contains(c.Help.Names, u.Message.Command) {
+				continue
+			}
+
+			if c.Master && !bm.IsMaster(u.User) {
+				bm.Reply(u, fmt.Sprintf(bm.Words["noPermission"], bm.At(u.User), u.Message.Command))
+				return true
+			}
+		}
+
+		bm.pushHelp(u, u.Message.Command, false)
+		return true
+	}
+
+	return false
 }

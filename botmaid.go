@@ -50,8 +50,9 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 	botType := conf.Get(section + ".Type").(string)
 
 	b := &Bot{
-		ID:  section,
-		API: new(API),
+		ID:      section,
+		API:     new(API),
+		BotMaid: bm,
 	}
 
 	if botType == "QQ" {
@@ -138,109 +139,6 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 	return nil
 }
 
-func (bm *BotMaid) initCommand() {
-	bm.AddCommand(&Command{
-		Do: func(u *Update, f *pflag.FlagSet) bool {
-			if len(f.Args()) == 1 {
-				helps := []string{}
-
-				for _, c := range bm.Commands {
-					if c.Help == nil || c.Help.Menu == "" {
-						continue
-					}
-					if c.Master && !bm.IsMaster(u.User) {
-						continue
-					}
-
-					helps = append(helps, fmt.Sprintf("  %v  %v", c.Help.Menu, c.Help.Help))
-				}
-
-				sort.Strings(helps)
-
-				s := ""
-				for _, v := range helps {
-					s += "\n" + v
-				}
-
-				bm.Reply(u, fmt.Sprintf(bm.Words["selfIntro"], u.Bot.Self.NickName, s))
-				return true
-			}
-
-			if len(f.Args()) == 2 {
-				bm.pushHelp(u, f.Args()[1], true)
-				return true
-			}
-
-			return false
-		},
-		Help: &Help{
-			Menu:  "help",
-			Help:  bm.Words["helpHelp"],
-			Names: []string{"help"},
-			Full:  bm.Words["helpHelpFull"],
-		},
-		Priority: 10000,
-	})
-
-	bm.AddCommand(&Command{
-		Do: func(u *Update, f *pflag.FlagSet) bool {
-			if u.Message.Command != "" {
-				for _, c := range bm.Commands {
-					if c.Help != nil && len(c.Help.Names) != 0 && !Contains(c.Help.Names, u.Message.Command) {
-						continue
-					}
-
-					if c.Master && !bm.IsMaster(u.User) {
-						bm.Reply(u, fmt.Sprintf(bm.Words["noPermission"], bm.At(u.User), u.Message.Command))
-						return true
-					}
-				}
-
-				bm.pushHelp(u, u.Message.Command, false)
-				return true
-			}
-
-			return false
-		},
-		Priority: -10000,
-	})
-
-	bm.AddCommand(&Command{
-		Do: func(u *Update, f *pflag.FlagSet) bool {
-			if len(f.Args()) != 2 {
-				return false
-			}
-
-			id, err := bm.ParseUserID(u, f.Args()[1])
-			if err != nil {
-				bm.Reply(u, fmt.Sprintf(bm.Words["invalidUser"], bm.At(u.User), f.Args()[1]))
-				return true
-			}
-
-			is := bm.Redis.SIsMember("master_"+u.Bot.ID, id).Val()
-
-			if is {
-				bm.Redis.SRem("master_"+u.Bot.ID, id)
-				bm.Reply(u, fmt.Sprintf(bm.Words["unregMaster"], bm.At(u.User), f.Args()[1]))
-				return true
-			}
-
-			bm.Redis.SAdd("master_"+u.Bot.ID, id)
-			bm.Reply(u, fmt.Sprintf(bm.Words["regMaster"], f.Args()[1]))
-			return true
-		},
-		Help: &Help{
-			Menu:  "master",
-			Help:  bm.Words["masterHelp"],
-			Names: []string{"master"},
-			Full:  bm.Words["masterHelpFull"],
-		},
-		Master: true,
-	})
-
-	sort.Stable(CommandSlice(bm.Commands))
-}
-
 func (bm *BotMaid) startBot() {
 	for _, b := range bm.Bots {
 		bot := b
@@ -257,7 +155,7 @@ func (bm *BotMaid) startBot() {
 						log.Printf("Bot running: %v.\n", err)
 					}
 				}()
-				log.Printf("[%v] %v (%v) has been loaded. Begin to get updates.\n", b.ID, b.Self.NickName, b.Platform())
+				log.Printf("[%v] %v (%v) has been loaded. Begin to get updates.\n", b.ID, b.Self.NickName, (*b.API).Platform())
 			}
 
 			for u := range updates {
@@ -271,14 +169,6 @@ func (bm *BotMaid) startBot() {
 						return
 					}
 
-					if b.Platform() == "Telegram" {
-						if u.User != nil && u.User.UserName != "" {
-							bm.Redis.HSet("telegramUsers", fmt.Sprintf("%v", u.User.UserName), u.User.ID)
-						}
-
-						u.Message.Content = strings.ReplaceAll(u.Message.Content, "—", "--")
-					}
-
 					u.Bot = b
 					if u.User != nil {
 						u.User.Bot = b
@@ -288,6 +178,14 @@ func (bm *BotMaid) startBot() {
 						if bm.IsBanned(u.Chat) {
 							return
 						}
+					}
+
+					if (*b.API).Platform() == "Telegram" {
+						if u.User != nil && u.User.UserName != "" {
+							bm.Redis.HSet("telegramUsers", fmt.Sprintf("%v", u.User.UserName), u.User.ID)
+						}
+
+						u.Message.Content = strings.ReplaceAll(u.Message.Content, "—", "--")
 					}
 
 					if bm.Conf.Log {
@@ -332,14 +230,7 @@ func (bm *BotMaid) startBot() {
 							continue
 						}
 
-						if c.Help == nil {
-							if c.Do(u, nil) {
-								break
-							}
-							continue
-						}
-
-						if c.Help.Menu == "" {
+						if c.Help == nil || c.Help.Menu == "" {
 							if c.Do(u, nil) {
 								break
 							}
@@ -445,20 +336,10 @@ Use "help [COMMAND] for more information about a command."`, bm.Conf.CommandPref
 		"invalidParameters": "%v, the parameters of the command \"%v\" is invalid.",
 		"noHelpText":        "%v, the command \"%v\" has no help text.",
 		"invalidUser":       "%v, the user \"%v\" is invalid or not exist.",
-		"helpHelp":          "display help texts",
-		"helpHelpFull": `Usage: help [COMMAND]
-
-%v`,
-		"masterHelp": "add/remove masters",
-		"masterHelpFull": `Usage: master @USER
-
-%v`,
-		"fmtVersion": "%v",
-		"fmtLog": `%v:
-
-ChangeLog:%v`,
-		"versionSet": "The version has been set.",
-		"logAdded":   "The ChangeLog has been added.",
+		"fmtVersion":        "Version: %v",
+		"fmtLog":            "%v:\n\nChangeLog:%v",
+		"versionSet":        "The version has been set.",
+		"logAdded":          "The ChangeLog has been added.",
 	}
 
 	return bm, nil
@@ -471,7 +352,8 @@ func (bm *BotMaid) Start() error {
 		return fmt.Errorf("Init botmaid: Connect Redis: %v", err)
 	}
 
-	bm.initCommand()
+	sort.Stable(CommandSlice(bm.Commands))
+
 	bm.startBot()
 	bm.loadTimers()
 
