@@ -38,7 +38,6 @@ type BotMaid struct {
 	Commands CommandSlice
 	Timers   []*Timer
 	Helps    []*Help
-	Flags    map[string]*pflag.FlagSet
 
 	Words map[string]string
 
@@ -161,11 +160,7 @@ func (bm *BotMaid) startBot() {
 			for u := range updates {
 				up := u
 				go func(u *Update) {
-					if u.Message == nil {
-						return
-					}
-
-					if !u.Time.After(bm.respTime) {
+					if u.Message == nil || !u.Time.After(bm.respTime) {
 						return
 					}
 
@@ -179,6 +174,7 @@ func (bm *BotMaid) startBot() {
 							return
 						}
 					}
+					u.Message.Flags = map[string]*pflag.FlagSet{}
 
 					if (*b.API).Platform() == "Telegram" {
 						if u.User != nil && u.User.UserName != "" {
@@ -205,7 +201,6 @@ func (bm *BotMaid) startBot() {
 						return
 					}
 					u.Message.Args = args
-
 					u.Message.Command = bm.extractCommand(u)
 
 					for _, c := range bm.Commands {
@@ -214,19 +209,15 @@ func (bm *BotMaid) startBot() {
 								c.Help.SetFlag = func(flag *pflag.FlagSet) {}
 							}
 
-							bm.Flags[c.Help.Menu] = pflag.NewFlagSet(c.Help.Menu, pflag.ContinueOnError)
-							c.Help.SetFlag(bm.Flags[c.Help.Menu])
+							u.Message.Flags[c.Help.Menu] = pflag.NewFlagSet(c.Help.Menu, pflag.ContinueOnError)
+							c.Help.SetFlag(u.Message.Flags[c.Help.Menu])
 
-							bm.Flags[c.Help.Menu].Parse(u.Message.Args)
+							u.Message.Flags[c.Help.Menu].Parse(u.Message.Args)
 						}
 					}
 
 					for _, c := range bm.Commands {
 						if c.Help != nil && len(c.Help.Names) != 0 && !Contains(c.Help.Names, u.Message.Command) {
-							continue
-						}
-
-						if !bm.IsMaster(u.User) && c.Master {
 							continue
 						}
 
@@ -237,7 +228,7 @@ func (bm *BotMaid) startBot() {
 							continue
 						}
 
-						if c.Do(u, bm.Flags[c.Help.Menu]) {
+						if c.Do(u, u.Message.Flags[c.Help.Menu]) {
 							break
 						}
 					}
@@ -254,8 +245,6 @@ func New(configFile string) (*BotMaid, error) {
 		Conf: &botMaidConfig{
 			Log: true,
 		},
-
-		Flags: map[string]*pflag.FlagSet{},
 
 		respTime: time.Now(),
 		history:  map[int64][]time.Time{},
@@ -329,17 +318,21 @@ The commands are:
 %%v
 
 Use "help [COMMAND] for more information about a command."`, bm.Conf.CommandPrefix[0], ListToString(bm.Conf.CommandPrefix[1:], "%v", ", ", " or ")),
-		"undefCommand":      "%v, the command \"%v\" is unknown, please retry after checking the spelling or the \"help\" command.",
-		"unregMaster":       "%v, the master %v has been unregistered.",
-		"regMaster":         "%v, the user %v has been registered as master.",
-		"noPermission":      "%v, you don't have permission to use the command \"%v\".",
-		"invalidParameters": "%v, the parameters of the command \"%v\" is invalid.",
-		"noHelpText":        "%v, the command \"%v\" has no help text.",
-		"invalidUser":       "%v, the user \"%v\" is invalid or not exist.",
-		"fmtVersion":        "Version: %v",
-		"fmtLog":            "%v:\n\nChangeLog:%v",
-		"versionSet":        "The version has been set.",
-		"logAdded":          "The ChangeLog has been added.",
+		"undefCommand":        "%v, the command \"%v\" is unknown, please retry after checking the spelling or the \"help\" command.",
+		"unregMaster":         "%v, the master %v has been unregistered.",
+		"regMaster":           "%v, the user %v has been registered as master.",
+		"noPermission":        "%v, you don't have permission to perform this operation.",
+		"invalidParameters":   "%v, the parameters of the command \"%v\" is invalid.",
+		"noHelpText":          "%v, the command \"%v\" has no help text.",
+		"invalidUser":         "%v, the user \"%v\" is invalid or not exist.",
+		"fmtVersion":          "Version: %v",
+		"fmtLog":              "%v:\n\nChangeLog:%v",
+		"versionSet":          "The version has been set to %v.",
+		"logAdded":            "The ChangeLog \"%v\" has been added.",
+		"versionLogHelp":      "show the change log of the current version",
+		"versetVerHelp":       "appoint the version to manage",
+		"versetLogHelp":       "add a sentence to the change log",
+		"versetBroadcastHelp": "broadcast the change log",
 	}
 
 	return bm, nil

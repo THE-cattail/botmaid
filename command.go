@@ -13,8 +13,6 @@ type Command struct {
 	Priority int
 
 	Help *Help
-
-	Master bool
 }
 
 // CommandSlice is a slice of Command that could be sort.

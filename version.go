@@ -31,7 +31,12 @@ func (bm *BotMaid) VersionCommandHelpSetFlag(f *pflag.FlagSet) {
 	f.BoolP("log", "l", false, bm.Words["versionLogHelp"])
 }
 
-func (bm *BotMaid) VersionMasterCommandDo(u *Update, f *pflag.FlagSet) bool {
+func (bm *BotMaid) VersetCommandDo(u *Update, f *pflag.FlagSet) bool {
+	if !bm.IsMaster(u.User) {
+		bm.Reply(u, fmt.Sprintf(bm.Words["noPermission"], bm.At(u.User)))
+		return true
+	}
+
 	broadcast, _ := f.GetBool("broadcast")
 	if broadcast {
 		bm.Broadcast("log", &Message{
@@ -50,22 +55,22 @@ func (bm *BotMaid) VersionMasterCommandDo(u *Update, f *pflag.FlagSet) bool {
 
 	if len(f.Args()) == 2 {
 		bm.Redis.Set("version", f.Args()[1], 0)
-		bm.Reply(u, bm.Words["versionSet"])
+		bm.Reply(u, fmt.Sprintf(bm.Words["versionSet"], f.Args()[1]))
 		flag = true
 	}
 
 	log, _ := f.GetString("log")
 	if log != "" {
 		bm.Redis.RPush("log_"+v, log)
-		bm.Reply(u, bm.Words["logAdded"])
+		bm.Reply(u, fmt.Sprintf(bm.Words["logAdded"], log))
 		flag = true
 	}
 
 	return flag
 }
 
-func (bm *BotMaid) VersionMasterCommandHelpSetFlag(f *pflag.FlagSet) {
-	f.String("ver", "", bm.Words["versionMasterVerHelp"])
-	f.String("log", "", bm.Words["versionMasterLogHelp"])
-	f.Bool("broadcast", false, bm.Words["versionMasterBroadcastHelp"])
+func (bm *BotMaid) VersetCommandHelpSetFlag(f *pflag.FlagSet) {
+	f.String("ver", "", bm.Words["versetVerHelp"])
+	f.String("log", "", bm.Words["versetLogHelp"])
+	f.Bool("broadcast", false, bm.Words["versetBroadcastHelp"])
 }

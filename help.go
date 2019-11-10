@@ -10,7 +10,7 @@ import (
 
 // Help describes the menu item of the help.
 type Help struct {
-	Menu, Help, Full string
+	Menu, Help, Usage, Comment string
 
 	Names []string
 
@@ -29,12 +29,7 @@ func (bm *BotMaid) pushHelp(u *Update, hc string, showUndef bool) {
 			continue
 		}
 
-		if c.Master && !bm.IsMaster(u.User) {
-			bm.Reply(u, fmt.Sprintf(bm.Words["noPermission"], bm.At(u.User), hc))
-			return
-		}
-
-		lines := strings.Split(bm.Flags[c.Help.Menu].FlagUsages(), "\n")
+		lines := strings.Split(u.Message.Flags[c.Help.Menu].FlagUsages(), "\n")
 		s := ""
 
 		for i := range lines {
@@ -49,13 +44,9 @@ func (bm *BotMaid) pushHelp(u *Update, hc string, showUndef bool) {
 			lines[i] = strings.Replace(lines[i], "\n", "  ", 1)
 			lines[i] = strings.ReplaceAll(lines[i], "\n", "")
 
-			if i != 0 {
-				s += "\n"
-			}
-
-			s += "  " + lines[i]
+			s += "\n  " + lines[i]
 		}
-		s = strings.TrimSpace(fmt.Sprintf(c.Help.Full, s))
+		s = strings.TrimSpace(c.Help.Usage + "\n" + s + c.Help.Comment)
 
 		if s == "" {
 			bm.Reply(u, fmt.Sprintf(bm.Words["noHelpText"], bm.At(u.User), hc))
@@ -77,9 +68,6 @@ func (bm *BotMaid) HelpCommandDo(u *Update, f *pflag.FlagSet) bool {
 
 		for _, c := range bm.Commands {
 			if c.Help == nil || c.Help.Menu == "" {
-				continue
-			}
-			if c.Master && !bm.IsMaster(u.User) {
 				continue
 			}
 
@@ -110,11 +98,6 @@ func (bm *BotMaid) HelpRespCommandDo(u *Update, f *pflag.FlagSet) bool {
 		for _, c := range bm.Commands {
 			if c.Help != nil && len(c.Help.Names) != 0 && !Contains(c.Help.Names, u.Message.Command) {
 				continue
-			}
-
-			if c.Master && !bm.IsMaster(u.User) {
-				bm.Reply(u, fmt.Sprintf(bm.Words["noPermission"], bm.At(u.User), u.Message.Command))
-				return true
 			}
 		}
 
