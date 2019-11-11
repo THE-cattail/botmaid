@@ -173,9 +173,15 @@ func (a *APITelegramBot) mapToUpdates(m []interface{}) ([]*Update, error) {
 			}
 		}
 
-		update.Message.Update = update
-		update.Chat.Update = update
-		update.User.Update = update
+		if update.Message != nil {
+			update.Message.Update = update
+		}
+		if update.Chat != nil {
+			update.Chat.Update = update
+		}
+		if update.User != nil {
+			update.User.Update = update
+		}
 		us = append(us, update)
 	}
 	return us, nil
