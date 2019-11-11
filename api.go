@@ -57,6 +57,8 @@ type Message struct {
 	Args    []string
 	Command string
 	Flags   map[string]*pflag.FlagSet
+
+	Update *Update
 }
 
 // Chat is a struct for a chat.
@@ -66,7 +68,7 @@ type Chat struct {
 
 	Title string
 
-	Bot *Bot
+	Update *Update
 }
 
 // User is a struct for a user.
@@ -76,5 +78,5 @@ type User struct {
 	UserName string
 	NickName string
 
-	Bot *Bot
+	Update *Update
 }

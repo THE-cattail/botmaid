@@ -34,6 +34,11 @@ func (bm *BotMaid) SubscribeCommandDo(u *Update, f *pflag.FlagSet) bool {
 		return true
 	}
 
+	if len(f.Args()) == 1 || !Contains(bm.SubEntries, f.Args()[1]) {
+		bm.Reply(u, fmt.Sprintf(bm.Words["correctSubEntries"], ListToString(bm.SubEntries, bm.Words["subEntriesFormat"], bm.Words["subEntriesSeparator"], bm.Words["subEntriesAnd"])))
+		return true
+	}
+
 	if len(f.Args()) == 2 {
 		if bm.Redis.SIsMember("subscribe_"+f.Args()[1], u.Bot.ID+"|"+u.Chat.Type+"|"+strconv.FormatInt(u.Chat.ID, 10)).Val() {
 			bm.Redis.SRem("subscribe_"+f.Args()[1], u.Bot.ID+"|"+u.Chat.Type+"|"+strconv.FormatInt(u.Chat.ID, 10))

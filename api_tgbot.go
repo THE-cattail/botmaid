@@ -173,6 +173,9 @@ func (a *APITelegramBot) mapToUpdates(m []interface{}) ([]*Update, error) {
 			}
 		}
 
+		update.Message.Update = update
+		update.Chat.Update = update
+		update.User.Update = update
 		us = append(us, update)
 	}
 	return us, nil
@@ -426,7 +429,7 @@ func (a *APITelegramBot) Push(update *Update) (*Update, error) {
 
 	msg, err := a.API("sendMessage", map[string]interface{}{
 		"chat_id":    update.Chat.ID,
-		"text":       update.Message.Content,
+		"text":       strings.TrimSpace(update.Message.Content),
 		"parse_mode": "HTML",
 	})
 	if err != nil {

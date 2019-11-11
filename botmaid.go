@@ -39,7 +39,8 @@ type BotMaid struct {
 	Timers   []*Timer
 	Helps    []*Help
 
-	Words map[string]string
+	Words      map[string]string
+	SubEntries []string
 
 	respTime time.Time
 	history  map[int64][]time.Time
@@ -82,7 +83,9 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 				ID:       int64(u["user_id"].(float64)),
 				UserName: strconv.FormatInt(int64(u["user_id"].(float64)), 10),
 				NickName: u["nickname"].(string),
-				Bot:      b,
+				Update: &Update{
+					Bot: b,
+				},
 			}
 
 			break
@@ -110,7 +113,9 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 			b.Self = &User{
 				ID:       int64(u["id"].(float64)),
 				NickName: u["first_name"].(string),
-				Bot:      b,
+				Update: &Update{
+					Bot: b,
+				},
 			}
 			if u["last_name"] != nil {
 				b.Self.NickName += " " + u["last_name"].(string)
@@ -165,15 +170,7 @@ func (bm *BotMaid) startBot() {
 					}
 
 					u.Bot = b
-					if u.User != nil {
-						u.User.Bot = b
-					}
-					if u.Chat != nil {
-						u.Chat.Bot = b
-						if bm.IsBanned(u.Chat) {
-							return
-						}
-					}
+
 					u.Message.Flags = map[string]*pflag.FlagSet{}
 
 					if (*b.API).Platform() == "Telegram" {
@@ -210,6 +207,7 @@ func (bm *BotMaid) startBot() {
 							}
 
 							u.Message.Flags[c.Help.Menu] = pflag.NewFlagSet(c.Help.Menu, pflag.ContinueOnError)
+							u.Message.Flags[c.Help.Menu].SortFlags = true
 							c.Help.SetFlag(u.Message.Flags[c.Help.Menu])
 
 							u.Message.Flags[c.Help.Menu].Parse(u.Message.Args)
@@ -336,6 +334,10 @@ Use "help [COMMAND] for more information about a command."`, bm.Conf.CommandPref
 		"upgraded":            "New version! ",
 		"subscribed":          "\"%v\" has been subscibed on this Chat.",
 		"unsubscribed":        "\"%v\" has been unsubscibed on this Chat.",
+		"correctSubEntries":   "These entries can be subscibed: %v",
+		"subEntriesFormat":    "\"%v\"",
+		"subEntriesSeparator": ", ",
+		"subEntriesAnd":       " and ",
 	}
 
 	return bm, nil

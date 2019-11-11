@@ -20,17 +20,17 @@ type Bot struct {
 
 // IsMaster checks if a user is master of the bot.
 func (bm *BotMaid) IsMaster(u *User) bool {
-	return bm.Redis.SIsMember("master_"+u.Bot.ID, u.ID).Val()
+	return bm.Redis.SIsMember("master_"+u.Update.Bot.ID, u.ID).Val()
 }
 
 // IsBanned checks if a user has been banned.
 func (bm *BotMaid) IsBanned(c *Chat) bool {
-	return bm.Redis.SIsMember("ban_"+c.Bot.ID, c.ID).Val()
+	return bm.Redis.SIsMember("ban_"+c.Update.Bot.ID, c.ID).Val()
 }
 
 // At returns a string to mention someone in a message.
 func (bm *BotMaid) At(u *User) string {
-	return (*u.Bot.API).ats(u)[0]
+	return (*u.Update.Bot.API).ats(u)[0]
 }
 
 // BeAt checks if a message of an update is mentioning the bot.

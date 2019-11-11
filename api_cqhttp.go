@@ -142,6 +142,9 @@ func (a *APICqhttp) mapToUpdates(m []interface{}) ([]*Update, error) {
 			continue
 		}
 
+		update.Message.Update = update
+		update.Chat.Update = update
+		update.User.Update = update
 		us = append(us, update)
 	}
 	return us, nil
@@ -228,7 +231,7 @@ func (a *APICqhttp) Push(update *Update) (*Update, error) {
 			message += fmt.Sprintf("[CQ:image,file=base64://%v]", base64.StdEncoding.EncodeToString(file))
 		}
 	} else {
-		message += update.Message.Content
+		message += strings.TrimSpace(update.Message.Content)
 	}
 
 	m["message"] = message
