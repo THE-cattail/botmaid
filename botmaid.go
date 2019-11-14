@@ -193,12 +193,12 @@ func (bm *BotMaid) startBot() {
 					}
 
 					args, err := shlex.Split(u.Message.Content)
-					if err != nil {
+					u.Message.Args = args
+					u.Message.Command = bm.extractCommand(u)
+					if err != nil && u.Message.Command != "" {
 						bm.Reply(u, fmt.Sprintf(bm.Words["invalidParameters"], bm.At(u.User), u.Message.Content))
 						return
 					}
-					u.Message.Args = args
-					u.Message.Command = bm.extractCommand(u)
 
 					for _, c := range bm.Commands {
 						if c.Help != nil && c.Help.Menu != "" {
