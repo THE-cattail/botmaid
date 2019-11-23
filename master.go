@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// MasterCommandDo is a Do func for a master command.
 func (bm *BotMaid) MasterCommandDo(u *Update, f *pflag.FlagSet) bool {
 	if !bm.IsMaster(u.User) {
 		bm.Reply(u, fmt.Sprintf(bm.Words["noPermission"], bm.At(u.User), "master"))

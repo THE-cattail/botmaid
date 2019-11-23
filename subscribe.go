@@ -28,6 +28,7 @@ func (bm *BotMaid) Broadcast(key string, m *Message) {
 	}
 }
 
+// SubscribeCommandDo is a Do func for a subscribe command.
 func (bm *BotMaid) SubscribeCommandDo(u *Update, f *pflag.FlagSet) bool {
 	if !bm.IsMaster(u.User) {
 		bm.Reply(u, fmt.Sprintf(bm.Words["noPermission"], bm.At(u.User), "subscribe"))

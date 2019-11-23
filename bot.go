@@ -71,7 +71,7 @@ func (bm *BotMaid) Reply(u *Update, s string) (*Update, error) {
 	})
 }
 
-// Reply replies a message back with a type.
+// ReplyType replies a message back with a type.
 func (bm *BotMaid) ReplyType(u *Update, s, t string) (*Update, error) {
 	bm.antiReplyLoop(u)
 
@@ -88,6 +88,7 @@ func (bm *BotMaid) ReplyType(u *Update, s, t string) (*Update, error) {
 	return nil, errors.New("Invalid type of message")
 }
 
+// Delete deletes a update.
 func (bm *BotMaid) Delete(u *Update) (*Update, error) {
 	uu := *u
 	uu.Type = "Delete"

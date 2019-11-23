@@ -16,6 +16,7 @@ func (bm *BotMaid) getLog() string {
 	return fmt.Sprintf(bm.Words["fmtLog"], bm.Redis.Get("version").Val(), log)
 }
 
+// VersionCommandDo is a Do func for a version command.
 func (bm *BotMaid) VersionCommandDo(u *Update, f *pflag.FlagSet) bool {
 	log, _ := f.GetBool("log")
 	if log {
@@ -27,10 +28,12 @@ func (bm *BotMaid) VersionCommandDo(u *Update, f *pflag.FlagSet) bool {
 	return true
 }
 
+// VersionCommandHelpSetFlag is a SetFlag func for a version command.
 func (bm *BotMaid) VersionCommandHelpSetFlag(f *pflag.FlagSet) {
 	f.BoolP("log", "l", false, bm.Words["versionLogHelp"])
 }
 
+// VersetCommandDo is a Do func for a verset command.
 func (bm *BotMaid) VersetCommandDo(u *Update, f *pflag.FlagSet) bool {
 	if !bm.IsMaster(u.User) {
 		bm.Reply(u, fmt.Sprintf(bm.Words["noPermission"], bm.At(u.User), "verset"))
@@ -69,6 +72,7 @@ func (bm *BotMaid) VersetCommandDo(u *Update, f *pflag.FlagSet) bool {
 	return flag
 }
 
+// VersetCommandHelpSetFlag is a SetFlag func for a verset command.
 func (bm *BotMaid) VersetCommandHelpSetFlag(f *pflag.FlagSet) {
 	f.String("ver", "", bm.Words["versetVerHelp"])
 	f.String("log", "", bm.Words["versetLogHelp"])

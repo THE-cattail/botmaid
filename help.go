@@ -62,6 +62,7 @@ func (bm *BotMaid) pushHelp(u *Update, hc string, showUndef bool) {
 	}
 }
 
+// HelpCommandDo is the Do func for a help command.
 func (bm *BotMaid) HelpCommandDo(u *Update, f *pflag.FlagSet) bool {
 	if len(f.Args()) == 1 {
 		helps := []string{}
@@ -93,6 +94,7 @@ func (bm *BotMaid) HelpCommandDo(u *Update, f *pflag.FlagSet) bool {
 	return false
 }
 
+// HelpRespCommandDo is a Do func for a help response command.
 func (bm *BotMaid) HelpRespCommandDo(u *Update, f *pflag.FlagSet) bool {
 	if u.Message.Command != "" {
 		for _, c := range bm.Commands {
