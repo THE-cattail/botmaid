@@ -7,6 +7,11 @@ import (
 )
 
 func (bm *BotMaid) MasterCommandDo(u *Update, f *pflag.FlagSet) bool {
+	if !bm.IsMaster(u.User) {
+		bm.Reply(u, fmt.Sprintf(bm.Words["noPermission"], bm.At(u.User), "master"))
+		return true
+	}
+
 	if len(f.Args()) != 2 {
 		return false
 	}
@@ -26,6 +31,6 @@ func (bm *BotMaid) MasterCommandDo(u *Update, f *pflag.FlagSet) bool {
 	}
 
 	bm.Redis.SAdd("master_"+u.Bot.ID, id)
-	bm.Reply(u, fmt.Sprintf(bm.Words["regMaster"], f.Args()[1]))
+	bm.Reply(u, fmt.Sprintf(bm.Words["regMaster"], bm.At(u.User), f.Args()[1]))
 	return true
 }
