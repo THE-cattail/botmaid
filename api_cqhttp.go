@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 // APICqhttp is a struct stores some basic information of the CQHTTP. Please search in CQHTTP document for details.
@@ -18,6 +20,7 @@ type APICqhttp struct {
 	AccessToken string
 	Secret      string
 	APIEndpoint string
+	WebsocketEndpoint string
 }
 
 var (
@@ -161,18 +164,32 @@ func (a *APICqhttp) Pull(pc *PullConfig) (UpdateChannel, ErrorChannel) {
 	updates := make(chan *Update)
 	errors := make(chan error)
 
+	var dialer *websocket.Dialer
+	conn, _, err := dialer.Dial(fmt.Sprintf(a.WebsocketEndpoint, a.AccessToken), nil)
+	if err != nil {
+		errors <- err
+		return updates, errors
+	}
+
 	go func() {
 		for {
-			m, err := a.API("get_updates", map[string]interface{}{
-				"limit":   pc.Limit,
-				"timeout": pc.Timeout,
-			})
+			_, message, err := conn.ReadMessage()
 			if err != nil {
 				errors <- err
 				time.Sleep(pc.RetryWaitingTime)
 				continue
 			}
-			us, err := a.mapToUpdates(m.([]interface{}))
+			ret := map[string]interface{}{}
+			err = json.Unmarshal(message, &ret)
+			if err != nil {
+				errors <- err
+				time.Sleep(pc.RetryWaitingTime)
+				continue
+			}
+
+			m := []interface{}{}
+			m = append(m, ret)
+			us, err := a.mapToUpdates(m)
 			if err != nil {
 				errors <- err
 				time.Sleep(pc.RetryWaitingTime)

@@ -67,6 +67,9 @@ func (bm *BotMaid) readBotConfig(conf *toml.Tree, section string) error {
 		if s, ok := conf.Get(section + ".APIEndpoint").(string); ok {
 			q.APIEndpoint = s
 		}
+		if s, ok := conf.Get(section + ".WebsocketEndpoint").(string); ok {
+			q.WebsocketEndpoint = s
+		}
 
 		for {
 			m, err := q.API("get_login_info", map[string]interface{}{})
